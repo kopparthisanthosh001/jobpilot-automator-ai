@@ -1,31 +1,29 @@
 
-import { useState } from "react";
 import { useUser } from "@supabase/auth-helpers-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import {
-  Upload,
-  Settings,
-  CheckCircle,
-  XCircle,
-  Clock,
-  Zap,
-  ArrowRight,
-  FileText,
-  Target,
-} from "lucide-react";
 import { Link } from "react-router-dom";
+import {
+  Upload, Settings, CheckCircle, XCircle, Clock, Zap,
+  ArrowRight, FileText, Target
+} from "lucide-react";
+import { useState } from "react";
+import { toast } from "@/hooks/use-toast";
 
 const DashboardHome = () => {
-  const user = useUser();
+  const { user } = useUser();
   const [autoApplyEnabled, setAutoApplyEnabled] = useState(false);
-  const [resumeUploaded] = useState(false);
+  const [resumeUploaded] = useState(false); // Ideally fetched from DB
 
   const handleConfigureAutoApply = async () => {
-    if (!user || !user.email) {
-      alert("You must be logged in to configure auto apply.");
+    if (!user) {
+      toast({
+        title: "❌ User not found",
+        description: "Please login again.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -37,17 +35,24 @@ const DashboardHome = () => {
         },
         body: JSON.stringify({
           email: user.email,
-          job_role: "Product Manager", // optionally dynamic
+          job_role: user.user_metadata?.job_title || "Product Manager",
         }),
       });
 
       if (response.ok) {
-        alert("✅ Jobs fetched successfully");
+        toast({
+          title: "✅ Jobs fetched successfully",
+          description: "Auto apply has been configured for your profile.",
+        });
       } else {
-        throw new Error("Failed to configure");
+        throw new Error("Failed to configure auto apply");
       }
     } catch (error) {
-      alert("❌ Configuration failed. Please try again later.");
+      toast({
+        title: "❌ Configuration failed",
+        description: "Please try again later.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -57,21 +62,21 @@ const DashboardHome = () => {
       value: "12",
       change: "+3 today",
       icon: FileText,
-      color: "text-primary",
+      color: "text-primary"
     },
     {
       title: "Jobs Matched",
       value: "45",
       change: "+8 new",
       icon: Target,
-      color: "text-secondary",
+      color: "text-secondary"
     },
     {
       title: "Response Rate",
       value: "23%",
       change: "+5% this week",
       icon: CheckCircle,
-      color: "text-success",
+      color: "text-success"
     },
   ];
 
@@ -84,7 +89,7 @@ const DashboardHome = () => {
         </p>
       </div>
 
-      {/* Stats */}
+      {/* Quick Stats */}
       <div className="grid md:grid-cols-3 gap-6">
         {stats.map((stat, index) => (
           <Card key={index} className="shadow-card border-0">
@@ -104,7 +109,7 @@ const DashboardHome = () => {
         ))}
       </div>
 
-      {/* Resume & Auto Apply */}
+      {/* Resume + Auto Apply */}
       <div className="grid lg:grid-cols-2 gap-6">
         <Card className="shadow-card border-0">
           <CardHeader>
@@ -118,7 +123,7 @@ const DashboardHome = () => {
               {resumeUploaded ? (
                 <>
                   <CheckCircle className="h-5 w-5 text-success" />
-                  <span className="text-success font-medium">Resume uploaded</span>
+                  <span className="text-success font-medium">Resume uploaded successfully</span>
                 </>
               ) : (
                 <>
@@ -128,19 +133,22 @@ const DashboardHome = () => {
               )}
             </div>
 
-            <div className="space-y-3">
-              <p className="text-muted-foreground">
-                {resumeUploaded
-                  ? "Last updated: 2 days ago"
-                  : "Upload your resume to start receiving automatic job applications."}
-              </p>
+            {resumeUploaded ? (
               <Link to="/dashboard/upload">
-                <Button className="bg-gradient-primary hover:opacity-90">
-                  {resumeUploaded ? "Update Resume" : "Upload Resume"}{" "}
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
+                <Button variant="outline" size="sm">Update Resume</Button>
               </Link>
-            </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-muted-foreground">
+                  Upload your resume to start receiving automatic job applications.
+                </p>
+                <Link to="/dashboard/upload">
+                  <Button className="bg-gradient-primary hover:opacity-90">
+                    Upload Resume <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -198,9 +206,7 @@ const DashboardHome = () => {
                   <Settings className="h-5 w-5" />
                   <div className="text-left">
                     <p className="font-medium">Set Job Preferences</p>
-                    <p className="text-sm text-muted-foreground">
-                      Configure your ideal job criteria
-                    </p>
+                    <p className="text-sm text-muted-foreground">Configure your ideal job criteria</p>
                   </div>
                 </div>
               </Button>
@@ -211,9 +217,7 @@ const DashboardHome = () => {
                   <FileText className="h-5 w-5" />
                   <div className="text-left">
                     <p className="font-medium">View Applied Jobs</p>
-                    <p className="text-sm text-muted-foreground">
-                      Track your application history
-                    </p>
+                    <p className="text-sm text-muted-foreground">Track your application history</p>
                   </div>
                 </div>
               </Button>
@@ -224,16 +228,14 @@ const DashboardHome = () => {
                   <Target className="h-5 w-5" />
                   <div className="text-left">
                     <p className="font-medium">View Analytics</p>
-                    <p className="text-sm text-muted-foreground">
-                      See your job search performance
-                    </p>
+                    <p className="text-sm text-muted-foreground">See your job search performance</p>
                   </div>
                 </div>
               </Button>
             </Link>
           </div>
         </CardContent>
-      </Card>
+      </div>
     </div>
   );
 };
