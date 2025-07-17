@@ -1,6 +1,7 @@
 
 import { useState } from "react";
-import { useUser, createBrowserSupabaseClient, SessionContextProvider } from "@supabase/auth-helpers-react";
+import { useUser, SessionContextProvider } from "@supabase/auth-helpers-react";
+import { createClient } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,10 +11,13 @@ import { Upload, Settings, CheckCircle, XCircle, Clock, Zap, ArrowRight, FileTex
 import { Link } from "react-router-dom";
 
 // Initialize Supabase
-const supabase = createBrowserSupabaseClient();
+const supabase = createClient(
+  process.env.REACT_APP_SUPABASE_URL || '',
+  process.env.REACT_APP_SUPABASE_ANON_KEY || ''
+);
 
 const DashboardHome = () => {
-  const { user } = useUser();
+  const user = useUser();
   const [autoApplyEnabled, setAutoApplyEnabled] = useState(false);
   const [resumeUploaded] = useState(false);
 
