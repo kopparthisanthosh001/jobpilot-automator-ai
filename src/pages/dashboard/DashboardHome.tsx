@@ -29,6 +29,9 @@ const DashboardHome = () => {
 
   const handleConfigureAutoApply = async () => {
     try {
+      console.log("Sending request to:", "https://jobpilot-backend.onrender.com/start");
+      console.log("Request body:", { email: user.email, job_role: user.job_title });
+      
       const response = await fetch("https://jobpilot-backend.onrender.com/start", {
         method: "POST",
         headers: {
@@ -40,18 +43,26 @@ const DashboardHome = () => {
         }),
       });
 
+      console.log("Response status:", response.status);
+      console.log("Response ok:", response.ok);
+
       if (response.ok) {
+        const data = await response.json();
+        console.log("Response data:", data);
         toast({
           title: "✅ Jobs fetched successfully",
           description: "Auto apply has been configured for your profile.",
         });
       } else {
-        throw new Error("Failed to configure auto apply");
+        const errorText = await response.text();
+        console.error("Response error:", errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
     } catch (error) {
+      console.error("Fetch error:", error);
       toast({
         title: "❌ Configuration failed",
-        description: "Please try again later.",
+        description: `Error: ${error.message}`,
         variant: "destructive",
       });
     }
