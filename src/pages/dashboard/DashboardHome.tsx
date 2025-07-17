@@ -235,7 +235,7 @@ const DashboardHome = () => {
             </Link>
           </div>
         </CardContent>
-      </div>
+      </Card>
     </div>
   );
 };
