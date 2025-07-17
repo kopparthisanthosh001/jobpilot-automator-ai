@@ -15,6 +15,13 @@ const DashboardHome = () => {
   const user = useUser();
   const [autoApplyEnabled, setAutoApplyEnabled] = useState(false);
   const [resumeUploaded] = useState(false); // Ideally fetched from DB
+  
+  // Check if user is returning (has created account more than 24 hours ago)
+  const isReturningUser = user?.created_at ? 
+    new Date().getTime() - new Date(user.created_at).getTime() > 24 * 60 * 60 * 1000 : false;
+  
+  // Get user's name from metadata or email
+  const userName = user?.user_metadata?.name || user?.email?.split('@')[0] || 'User';
 
   const handleConfigureAutoApply = async () => {
     if (!user) {
@@ -82,7 +89,9 @@ const DashboardHome = () => {
   return (
     <div className="space-y-8">
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold">Welcome back 👋</h1>
+        <h1 className="text-3xl font-bold">
+          {isReturningUser ? `Welcome back, ${userName}` : `Welcome, ${userName}`} 👋
+        </h1>
         <p className="text-muted-foreground text-lg">
           Here's what's happening with your job search automation
         </p>
