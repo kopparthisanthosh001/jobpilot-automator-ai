@@ -7,8 +7,7 @@ import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import DashboardHome from "./pages/dashboard/DashboardHome";
-import Upload from "./pages/dashboard/Upload";
-import Preferences from "./pages/dashboard/Preferences";
+import ProfileSetup from "./pages/dashboard/ProfileSetup";
 import AppliedJobs from "./pages/dashboard/AppliedJobs";
 import NotFound from "./pages/NotFound";
 
@@ -25,8 +24,7 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/dashboard" element={<Dashboard />}>
             <Route index element={<DashboardHome />} />
-            <Route path="upload" element={<Upload />} />
-            <Route path="preferences" element={<Preferences />} />
+            <Route path="profile-setup" element={<ProfileSetup />} />
             <Route path="applied" element={<AppliedJobs />} />
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

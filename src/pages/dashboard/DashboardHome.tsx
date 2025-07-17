@@ -142,7 +142,7 @@ const DashboardHome = () => {
             </div>
 
             {resumeUploaded ? (
-              <Link to="/dashboard/upload">
+              <Link to="/dashboard/profile-setup">
                 <Button variant="outline" size="sm">Update Resume</Button>
               </Link>
             ) : (
@@ -150,7 +150,7 @@ const DashboardHome = () => {
                 <p className="text-muted-foreground">
                   Upload your resume to start receiving automatic job applications.
                 </p>
-                <Link to="/dashboard/upload">
+                <Link to="/dashboard/profile-setup">
                   <Button className="bg-gradient-primary hover:opacity-90">
                     Upload Resume <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
@@ -208,13 +208,13 @@ const DashboardHome = () => {
         </CardHeader>
         <CardContent>
           <div className="grid md:grid-cols-3 gap-4">
-            <Link to="/dashboard/preferences">
+            <Link to="/dashboard/profile-setup">
               <Button variant="outline" className="w-full justify-start h-auto p-4">
                 <div className="flex items-center space-x-3">
                   <Settings className="h-5 w-5" />
                   <div className="text-left">
-                    <p className="font-medium">Set Job Preferences</p>
-                    <p className="text-sm text-muted-foreground">Configure your ideal job criteria</p>
+                    <p className="font-medium">Profile Setup</p>
+                    <p className="text-sm text-muted-foreground">Upload resume & set job preferences</p>
                   </div>
                 </div>
               </Button>

@@ -15,7 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { 
   Home, 
-  Upload, 
+  User, 
   Settings, 
   Zap, 
   FileText, 
@@ -26,8 +26,7 @@ import {
 
 const menuItems = [
   { title: "Home", url: "/dashboard", icon: Home },
-  { title: "Upload Resume", url: "/dashboard/upload", icon: Upload },
-  { title: "Job Preferences", url: "/dashboard/preferences", icon: Settings },
+  { title: "Profile Setup", url: "/dashboard/profile-setup", icon: User },
   { title: "Auto Apply", url: "/dashboard/auto-apply", icon: Zap },
   { title: "Applied Jobs", url: "/dashboard/applied", icon: FileText },
   { title: "Analytics", url: "/dashboard/analytics", icon: BarChart3 },
