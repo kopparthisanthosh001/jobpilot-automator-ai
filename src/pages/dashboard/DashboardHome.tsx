@@ -1,4 +1,3 @@
-
 import { useUser } from "@supabase/auth-helpers-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +12,7 @@ import { useState } from "react";
 import { toast } from "@/hooks/use-toast";
 
 const DashboardHome = () => {
-  const { user } = useUser();
+  const user = useUser();
   const [autoApplyEnabled, setAutoApplyEnabled] = useState(false);
   const [resumeUploaded] = useState(false); // Ideally fetched from DB
 
