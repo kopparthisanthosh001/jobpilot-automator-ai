@@ -15,10 +15,47 @@ import {
   Target
 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "@/hooks/use-toast";
 
 const DashboardHome = () => {
   const [autoApplyEnabled, setAutoApplyEnabled] = useState(false);
   const [resumeUploaded] = useState(false); // This would come from your app state
+  
+  // Mock user data - replace with actual user state/context
+  const user = {
+    email: "user@example.com",
+    job_title: "Product Manager"
+  };
+
+  const handleConfigureAutoApply = async () => {
+    try {
+      const response = await fetch("https://jobpilot-backend.onrender.com/start", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: user.email,
+          job_role: user.job_title,
+        }),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "✅ Jobs fetched successfully",
+          description: "Auto apply has been configured for your profile.",
+        });
+      } else {
+        throw new Error("Failed to configure auto apply");
+      }
+    } catch (error) {
+      toast({
+        title: "❌ Configuration failed",
+        description: "Please try again later.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const stats = [
     {
@@ -162,11 +199,9 @@ const DashboardHome = () => {
               )}
             </div>
 
-            <Link to="/dashboard/auto-apply">
-              <Button variant="outline" size="sm">
-                Configure Auto Apply
-              </Button>
-            </Link>
+            <Button variant="outline" size="sm" onClick={handleConfigureAutoApply}>
+              Configure Auto Apply
+            </Button>
           </CardContent>
         </Card>
       </div>
