@@ -1,8 +1,15 @@
 import { Outlet } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import { useUser } from "@supabase/auth-helpers-react";
 
 const Dashboard = () => {
+  const user = useUser();
+  
+  // Get user's name from metadata or email
+  const userName = user?.user_metadata?.name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User';
+  const userInitial = userName.charAt(0).toUpperCase();
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
@@ -18,9 +25,9 @@ const Dashboard = () => {
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2">
                   <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                    <span className="text-sm font-semibold text-primary">U</span>
+                    <span className="text-sm font-semibold text-primary">{userInitial}</span>
                   </div>
-                  <span className="text-sm font-medium text-foreground">User</span>
+                  <span className="text-sm font-medium text-foreground">{userName}</span>
                 </div>
               </div>
             </div>
