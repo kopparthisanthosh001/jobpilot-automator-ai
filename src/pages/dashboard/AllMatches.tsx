@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { useUser } from "@supabase/auth-helpers-react";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -52,71 +51,56 @@ const AllMatches = () => {
     try {
       setLoading(true);
       
-      // Get user's job matches with job details from Supabase
-      const { data: matches, error } = await supabase
-        .from('user_job_matches')
-        .select(`
-          id,
-          match_score,
-          status,
-          matched_at,
-          scraped_jobs (
-            id,
-            title,
-            company,
-            location,
-            description,
-            platform,
-            job_url,
-            scraped_at
-          )
-        `)
-        .eq('user_id', user.id)
-        .order('matched_at', { ascending: false })
-        .limit(50);
-
-      if (error) {
-        console.error('Error fetching job matches:', error);
-        // Fallback to mock data for demo
-        const mockData: JobMatch[] = [
-          {
-            id: "1",
-            title: "Senior Frontend Developer",
-            company: "TechCorp Inc",
-            location: "San Francisco, CA",
-            status: "pending",
-            platform: "Indeed",
-            matched_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-            job_url: "https://indeed.com/jobs/123"
-          },
-          {
-            id: "2", 
-            title: "Product Manager",
-            company: "StartupXYZ",
-            location: "New York, NY",
-            status: "applied",
-            platform: "Indeed",
-            matched_at: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-            job_url: "https://indeed.com/jobs/456"
-          }
-        ];
-        setJobMatches(mockData);
-      } else {
-        // Transform the data to match our JobMatch interface
-        const transformedMatches: JobMatch[] = (matches || []).map((match: any) => ({
-          id: match.scraped_jobs?.id || match.id,
-          title: match.scraped_jobs?.title || 'Software Engineer',
-          company: match.scraped_jobs?.company || 'TechCorp',
-          location: match.scraped_jobs?.location || 'Remote',
-          status: match.status as JobMatch["status"],
-          platform: match.scraped_jobs?.platform || 'Indeed',
-          matched_at: match.matched_at,
-          job_url: match.scraped_jobs?.job_url || '#',
-          description: match.scraped_jobs?.description
-        }));
-        
-        setJobMatches(transformedMatches);
-      }
+      // For MVP, using mock data that simulates Indeed API results
+      // This would be replaced with actual Supabase integration once connected
+      const mockData: JobMatch[] = [
+        {
+          id: "1",
+          title: "Senior Frontend Developer",
+          company: "TechCorp Inc",
+          location: "San Francisco, CA",
+          status: "pending",
+          platform: "Indeed",
+          matched_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+          job_url: "https://indeed.com/jobs/123",
+          description: "Join our team as a Senior Frontend Developer working with React, TypeScript, and modern web technologies."
+        },
+        {
+          id: "2", 
+          title: "Full Stack Engineer",
+          company: "StartupXYZ",
+          location: "Remote",
+          status: "applied",
+          platform: "Indeed",
+          matched_at: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+          job_url: "https://indeed.com/jobs/456",
+          description: "We're looking for a passionate Full Stack Engineer to help build our next-generation platform."
+        },
+        {
+          id: "3",
+          title: "Product Manager",
+          company: "BigTech Ltd",
+          location: "New York, NY", 
+          status: "interview",
+          platform: "Indeed",
+          matched_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+          job_url: "https://indeed.com/jobs/789",
+          description: "Lead product strategy and work with cross-functional teams to deliver innovative solutions."
+        },
+        {
+          id: "4",
+          title: "DevOps Engineer",
+          company: "CloudTech",
+          location: "Remote",
+          status: "pending",
+          platform: "Indeed", 
+          matched_at: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+          job_url: "https://indeed.com/jobs/101112",
+          description: "Build and maintain scalable infrastructure using AWS, Docker, and Kubernetes."
+        }
+      ];
+      
+      setJobMatches(mockData);
     } catch (error) {
       console.error("Error fetching job matches:", error);
       toast({
