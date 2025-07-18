@@ -165,6 +165,8 @@ const ProfileSetup = () => {
           skills: skills,
           preferred_locations: preferredLocations,
           updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id'
         });
 
       if (error) {
