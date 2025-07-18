@@ -8,20 +8,48 @@ import {
   Upload, Settings, CheckCircle, XCircle, Clock, Zap,
   ArrowRight, FileText, Target
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const DashboardHome = () => {
   const user = useUser();
   const [autoApplyEnabled, setAutoApplyEnabled] = useState(false);
   const [resumeUploaded] = useState(false); // Ideally fetched from DB
+  const [userProfile, setUserProfile] = useState<any>(null);
   
   // Check if user is returning (has created account more than 24 hours ago)
   const isReturningUser = user?.created_at ? 
     new Date().getTime() - new Date(user.created_at).getTime() > 24 * 60 * 60 * 1000 : false;
   
-  // Get user's name from metadata or email
-  const userName = user?.user_metadata?.name || user?.email?.split('@')[0] || 'User';
+  // Get user's first name from profile or fallback to email
+  const userName = userProfile?.full_name?.split(' ')[0] || user?.user_metadata?.name || user?.email?.split('@')[0] || 'User';
+
+  // Fetch user profile data
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!user?.id) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('full_name, email')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (error) {
+          console.error('Error fetching profile:', error);
+          return;
+        }
+        
+        setUserProfile(data);
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+      }
+    };
+
+    fetchUserProfile();
+  }, [user?.id]);
 
   const handleConfigureAutoApply = async () => {
     if (!user) {
