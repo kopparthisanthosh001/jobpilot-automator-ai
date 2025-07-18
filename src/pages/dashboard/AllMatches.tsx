@@ -51,30 +51,37 @@ const AllMatches = () => {
       // Try to fetch real job matches from Supabase first
       if (user?.id) {
         const { data: jobMatches, error } = await supabase
-          .from('applied_jobs')
+          .from('user_job_matches')
           .select(`
-            id,
-            job_title,
-            company,
-            job_url,
-            status,
-            applied_on
+            *,
+            scraped_jobs (
+              id,
+              title,
+              company,
+              location,
+              description,
+              salary_range,
+              platform,
+              job_url,
+              requirements,
+              benefits
+            )
           `)
           .eq('user_id', user.id)
-          .order('applied_on', { ascending: false });
+          .order('matched_at', { ascending: false });
 
         if (!error && jobMatches && jobMatches.length > 0) {
           // Transform Supabase data to JobMatch format
           const transformedMatches: JobMatch[] = jobMatches.map((match: any) => ({
             id: match.id,
-            title: match.job_title || 'Unknown Title',
-            company: match.company || 'Unknown Company',
-            location: 'Remote', // Default since location isn't in applied_jobs table
-            status: match.status,
-            platform: 'unknown', // Default since platform isn't in applied_jobs table
-            matched_at: match.applied_on,
-            job_url: match.job_url || '#',
-            description: 'Job application from your profile'
+            title: match.scraped_jobs?.title || 'Unknown Title',
+            company: match.scraped_jobs?.company || 'Unknown Company',
+            location: match.scraped_jobs?.location || 'Remote',
+            status: (match.status as JobMatch["status"]) || 'pending',
+            platform: match.scraped_jobs?.platform || 'indeed',
+            matched_at: match.matched_at || new Date().toISOString(),
+            job_url: match.scraped_jobs?.job_url || '#',
+            description: match.scraped_jobs?.description || 'No description available'
           }));
           
           setJobMatches(transformedMatches);
@@ -82,7 +89,10 @@ const AllMatches = () => {
         }
       }
 
-      // Fallback to mock Indian job data if no real data or user not found
+      // If no real matches found, show empty state
+      setJobMatches([]);
+      
+      // Optionally keep some mock data for demonstration (remove this in production)
       const mockIndianJobs: JobMatch[] = [
         {
           id: "1",
@@ -141,7 +151,8 @@ const AllMatches = () => {
         }
       ];
       
-      setJobMatches(mockIndianJobs);
+      // Comment out mock data to show real empty state
+      // setJobMatches(mockIndianJobs);
     } catch (error) {
       console.error("Error fetching job matches:", error);
       toast({

@@ -10,6 +10,7 @@ import DashboardHome from "./pages/dashboard/DashboardHome";
 import ProfileSetup from "./pages/dashboard/ProfileSetup";
 import AppliedJobs from "./pages/dashboard/AppliedJobs";
 import AllMatches from "./pages/dashboard/AllMatches";
+import TriggerScraping from "./pages/dashboard/TriggerScraping";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="profile-setup" element={<ProfileSetup />} />
             <Route path="applied" element={<AppliedJobs />} />
             <Route path="matches" element={<AllMatches />} />
+            <Route path="scrape" element={<TriggerScraping />} />
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

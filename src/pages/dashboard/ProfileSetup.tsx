@@ -34,6 +34,7 @@ import {
   Briefcase
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ProfileSetupProps {
   open?: boolean;
@@ -188,8 +189,36 @@ const ProfileSetup = ({ open = true, onOpenChange, asDialog = false }: ProfileSe
   const handleCompleteSetup = async () => {
     setSaving(true);
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      // Save profile data to Supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        const { error } = await supabase
+          .from('profiles')
+          .upsert({
+            user_id: user.id,
+            full_name: '', // Will be filled from auth metadata
+            email: user.email,
+            desired_role: preferences.desiredRole,
+            experience_level: 'intermediate', // Default value
+            preferred_locations: preferences.locations,
+            skills: preferences.keywords.split(',').map(skill => skill.trim()).filter(Boolean),
+            updated_at: new Date().toISOString()
+          });
+
+        if (error) {
+          console.error('Error saving profile:', error);
+          toast({
+            title: "Error saving profile",
+            description: "There was an error saving your profile. Please try again.",
+            variant: "destructive"
+          });
+          setSaving(false);
+          return;
+        }
+      }
+
       setSaving(false);
       setFormCompleted(true);
       toast({
@@ -204,7 +233,15 @@ const ProfileSetup = ({ open = true, onOpenChange, asDialog = false }: ProfileSe
         }
         navigate('/dashboard/matches');
       }, 1500);
-    }, 1000);
+    } catch (error) {
+      console.error('Error completing profile setup:', error);
+      setSaving(false);
+      toast({
+        title: "Error",
+        description: "There was an error completing your profile setup. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const isStep1Valid = preferences.desiredRole.trim().length > 0;

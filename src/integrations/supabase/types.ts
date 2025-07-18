@@ -93,6 +93,45 @@ export type Database = {
           },
         ]
       }
+      profiles: {
+        Row: {
+          created_at: string | null
+          desired_role: string | null
+          email: string | null
+          experience_level: string | null
+          full_name: string | null
+          id: string
+          preferred_locations: string[] | null
+          skills: string[] | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          desired_role?: string | null
+          email?: string | null
+          experience_level?: string | null
+          full_name?: string | null
+          id?: string
+          preferred_locations?: string[] | null
+          skills?: string[] | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          desired_role?: string | null
+          email?: string | null
+          experience_level?: string | null
+          full_name?: string | null
+          id?: string
+          preferred_locations?: string[] | null
+          skills?: string[] | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       resumes: {
         Row: {
           file_url: string | null
@@ -118,6 +157,89 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scraped_jobs: {
+        Row: {
+          benefits: string[] | null
+          company: string
+          created_at: string | null
+          description: string | null
+          id: string
+          job_url: string
+          location: string | null
+          platform: string
+          requirements: string[] | null
+          salary_range: string | null
+          scraped_at: string | null
+          title: string
+        }
+        Insert: {
+          benefits?: string[] | null
+          company: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          job_url: string
+          location?: string | null
+          platform?: string
+          requirements?: string[] | null
+          salary_range?: string | null
+          scraped_at?: string | null
+          title: string
+        }
+        Update: {
+          benefits?: string[] | null
+          company?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          job_url?: string
+          location?: string | null
+          platform?: string
+          requirements?: string[] | null
+          salary_range?: string | null
+          scraped_at?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
+      user_job_matches: {
+        Row: {
+          created_at: string | null
+          id: string
+          job_id: string | null
+          match_score: number | null
+          matched_at: string | null
+          status: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          job_id?: string | null
+          match_score?: number | null
+          matched_at?: string | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          job_id?: string | null
+          match_score?: number | null
+          matched_at?: string | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_job_matches_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "scraped_jobs"
             referencedColumns: ["id"]
           },
         ]
