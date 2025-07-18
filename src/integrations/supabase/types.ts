@@ -209,28 +209,28 @@ export type Database = {
       user_job_matches: {
         Row: {
           created_at: string | null
+          date_posted: string | null
           id: string
           job_id: string | null
           match_score: number | null
-          matched_at: string | null
           status: string | null
           user_id: string | null
         }
         Insert: {
           created_at?: string | null
+          date_posted?: string | null
           id?: string
           job_id?: string | null
           match_score?: number | null
-          matched_at?: string | null
           status?: string | null
           user_id?: string | null
         }
         Update: {
           created_at?: string | null
+          date_posted?: string | null
           id?: string
           job_id?: string | null
           match_score?: number | null
-          matched_at?: string | null
           status?: string | null
           user_id?: string | null
         }

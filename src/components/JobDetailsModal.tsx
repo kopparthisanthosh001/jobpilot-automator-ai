@@ -12,7 +12,7 @@ interface JobMatch {
   company: string;
   location: string;
   platform: string;
-  matched_at: string;
+  date_posted: string;
   job_url: string;
   description?: string;
   salary_range?: string;
@@ -75,7 +75,7 @@ const JobDetailsModal = ({ job, open, onOpenChange }: JobDetailsModalProps) => {
             <div className="space-y-3">
               <div className="flex items-center space-x-2">
                 <Calendar className="h-5 w-5 text-muted-foreground" />
-                <span className="text-muted-foreground">Matched {getTimeAgo(job.matched_at)}</span>
+                <span className="text-muted-foreground">Posted {getTimeAgo(job.date_posted)}</span>
               </div>
               
               <div>

@@ -119,16 +119,16 @@ serve(async (req) => {
     console.log('Roles to search:', rolesToSearch)
     console.log('Locations to search:', locationsToSearch)
 
-    // Scrape jobs from JSearch API for targeted search
+    // Scrape jobs from LinkedIn and Naukri for targeted search
     for (const role of rolesToSearch) {
       for (const city of locationsToSearch) {
         try {
-          const jobs = await scrapeJSearchJobs(role, city, fetch_recent ? 5 : 10)
+          const jobs = await scrapeLinkedInNaukriJobs(role, city, fetch_recent ? 5 : 10)
           allJobs.push(...jobs)
-          console.log(`Found ${jobs.length} jobs for ${role} in ${city}`)
+          console.log(`Found ${jobs.length} LinkedIn/Naukri jobs for ${role} in ${city}`)
           
           // Add delay to avoid rate limiting
-          await new Promise(resolve => setTimeout(resolve, 500))
+          await new Promise(resolve => setTimeout(resolve, 1000))
           
           // Break early if we have enough jobs for recent fetch
           if (fetch_recent && allJobs.length >= limit) {
@@ -194,7 +194,8 @@ serve(async (req) => {
         user_id: user.user_id,
         job_id: job.id,
         match_score: calculateMatchScore(job, user),
-        status: 'pending'
+        status: 'pending',
+        date_posted: job.created_at || new Date().toISOString()
       }))
 
       if (jobMatches.length > 0) {
@@ -216,7 +217,8 @@ serve(async (req) => {
             user_id: user.user_id,
             job_id: insertedJobs[0].id,
             match_score: 0.3, // Low but visible match
-            status: 'pending'
+            status: 'pending',
+            date_posted: insertedJobs[0].created_at || new Date().toISOString()
           }
           
           const { error: fallbackError } = await supabase
@@ -315,16 +317,19 @@ function isRoleMatch(jobTitle: string, jobDescription: string, desiredRole: stri
   return matchingWords.length >= Math.ceil(roleWords.length * 0.5)
 }
 
-// Scrape jobs using JSearch API (RapidAPI)
-async function scrapeJSearchJobs(role: string, location: string, jobLimit: number = 10): Promise<JobData[]> {
+// Scrape jobs specifically from LinkedIn and Naukri using JSearch API
+async function scrapeLinkedInNaukriJobs(role: string, location: string, jobLimit: number = 10): Promise<JobData[]> {
   const rapidApiKey = Deno.env.get('RAPIDAPI_KEY')
   if (!rapidApiKey) {
     console.error('RAPIDAPI_KEY not found in environment variables')
     return []
   }
 
+  const jobs: JobData[] = []
+
   try {
-    const response = await fetch(`https://jsearch.p.rapidapi.com/search?query=${encodeURIComponent(role)}&page=1&num_pages=1&country=IN&locality=${encodeURIComponent(location)}&date_posted=today`, {
+    // Search for LinkedIn jobs specifically
+    const linkedinResponse = await fetch(`https://jsearch.p.rapidapi.com/search?query=${encodeURIComponent(role)}&page=1&num_pages=1&country=IN&locality=${encodeURIComponent(location)}&employment_types=FULLTIME&job_requirements=no_degree&remote_jobs_only=false&date_posted=week&employer=linkedin`, {
       method: 'GET',
       headers: {
         'X-RapidAPI-Key': rapidApiKey,
@@ -332,32 +337,59 @@ async function scrapeJSearchJobs(role: string, location: string, jobLimit: numbe
       }
     })
 
-    if (!response.ok) {
-      throw new Error(`JSearch API error: ${response.status}`)
+    if (linkedinResponse.ok) {
+      const linkedinData = await linkedinResponse.json()
+      if (linkedinData.data && Array.isArray(linkedinData.data)) {
+        for (const job of linkedinData.data.slice(0, Math.ceil(jobLimit / 2))) {
+          jobs.push({
+            title: job.job_title || 'Unknown Title',
+            company: job.employer_name || 'Unknown Company',
+            location: `${job.job_city || location}, ${job.job_state || 'India'}`,
+            description: job.job_description || job.job_highlights?.Qualifications?.join('. ') || 'No description available',
+            salary_range: job.job_salary || job.job_min_salary ? `₹${job.job_min_salary || 'Not specified'} - ₹${job.job_max_salary || 'Not specified'}` : undefined,
+            job_url: job.job_apply_link || job.job_google_link || '#',
+            platform: 'linkedin',
+            requirements: job.job_highlights?.Qualifications || [],
+            benefits: job.job_highlights?.Benefits || []
+          })
+        }
+      }
     }
 
-    const data = await response.json()
-    const jobs: JobData[] = []
+    // Add delay between requests
+    await new Promise(resolve => setTimeout(resolve, 1000))
 
-    if (data.data && Array.isArray(data.data)) {
-      for (const job of data.data.slice(0, jobLimit)) {
-        jobs.push({
-          title: job.job_title || 'Unknown Title',
-          company: job.employer_name || 'Unknown Company',
-          location: `${job.job_city || location}, ${job.job_state || 'India'}`,
-          description: job.job_description || job.job_highlights?.Qualifications?.join('. ') || 'No description available',
-          salary_range: job.job_salary || job.job_min_salary ? `₹${job.job_min_salary || 'Not specified'} - ₹${job.job_max_salary || 'Not specified'}` : undefined,
-          job_url: job.job_apply_link || job.job_google_link || '#',
-          platform: 'linkedin',
-          requirements: job.job_highlights?.Qualifications || [],
-          benefits: job.job_highlights?.Benefits || []
-        })
+    // Search for Naukri jobs specifically
+    const naukriResponse = await fetch(`https://jsearch.p.rapidapi.com/search?query=${encodeURIComponent(role + ' site:naukri.com')}&page=1&num_pages=1&country=IN&locality=${encodeURIComponent(location)}&employment_types=FULLTIME&date_posted=week`, {
+      method: 'GET',
+      headers: {
+        'X-RapidAPI-Key': rapidApiKey,
+        'X-RapidAPI-Host': 'jsearch.p.rapidapi.com'
+      }
+    })
+
+    if (naukriResponse.ok) {
+      const naukriData = await naukriResponse.json()
+      if (naukriData.data && Array.isArray(naukriData.data)) {
+        for (const job of naukriData.data.slice(0, Math.ceil(jobLimit / 2))) {
+          jobs.push({
+            title: job.job_title || 'Unknown Title',
+            company: job.employer_name || 'Unknown Company',
+            location: `${job.job_city || location}, ${job.job_state || 'India'}`,
+            description: job.job_description || job.job_highlights?.Qualifications?.join('. ') || 'No description available',
+            salary_range: job.job_salary || job.job_min_salary ? `₹${job.job_min_salary || 'Not specified'} - ₹${job.job_max_salary || 'Not specified'}` : undefined,
+            job_url: job.job_apply_link || job.job_google_link || '#',
+            platform: 'naukri',
+            requirements: job.job_highlights?.Qualifications || [],
+            benefits: job.job_highlights?.Benefits || []
+          })
+        }
       }
     }
 
     return jobs
   } catch (error) {
-    console.error(`Error scraping JSearch for ${role} in ${location}:`, error)
+    console.error(`Error scraping LinkedIn/Naukri for ${role} in ${location}:`, error)
     return []
   }
 }

@@ -23,7 +23,7 @@ interface JobMatch {
   location: string;
   status: "pending" | "applied" | "rejected" | "interview";
   platform: string;
-  matched_at: string;
+  date_posted: string;
   job_url: string;
   description?: string;
   salary_range?: string;
@@ -73,7 +73,7 @@ const AllMatches = () => {
             )
           `)
           .eq('user_id', user.id)
-          .order('matched_at', { ascending: false });
+          .order('date_posted', { ascending: false });
 
         if (!error && jobMatches && jobMatches.length > 0) {
           const transformedMatches: JobMatch[] = jobMatches.map((match: any) => ({
@@ -83,7 +83,7 @@ const AllMatches = () => {
             location: match.scraped_jobs?.location || 'Remote',
             status: (match.status as JobMatch["status"]) || 'pending',
             platform: match.scraped_jobs?.platform || 'indeed',
-            matched_at: match.matched_at || new Date().toISOString(),  
+            date_posted: match.date_posted || new Date().toISOString(),  
             job_url: match.scraped_jobs?.job_url || '#',
             description: match.scraped_jobs?.description || 'No description available',
             salary_range: match.scraped_jobs?.salary_range
@@ -457,7 +457,7 @@ const AllMatches = () => {
                   <TableHead>Location</TableHead>
                   <TableHead>Salary</TableHead>
                   <TableHead>Platform</TableHead>
-                  <TableHead>Matched At</TableHead>
+                  <TableHead>Date Posted</TableHead>
                   <TableHead className="w-12"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -504,7 +504,7 @@ const AllMatches = () => {
                       <Badge variant="outline">{job.platform}</Badge>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {getTimeAgo(job.matched_at)}
+                      {getTimeAgo(job.date_posted)}
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
