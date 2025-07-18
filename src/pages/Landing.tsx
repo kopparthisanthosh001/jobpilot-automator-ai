@@ -14,7 +14,7 @@ import {
   Star,
   ArrowRight
 } from "lucide-react";
-import heroImage from "@/assets/hero-automation.jpg";
+// import heroImage from "@/assets/hero-automation.jpg";
 
 const Landing = () => {
   return (
@@ -94,11 +94,12 @@ const Landing = () => {
             </div>
             
             <div className="relative">
-              <img 
-                src={heroImage} 
-                alt="Job automation illustration" 
-                className="w-full rounded-2xl shadow-glow"
-              />
+              <div className="w-full h-96 rounded-2xl shadow-glow bg-gradient-primary/20 flex items-center justify-center">
+                <div className="text-center space-y-4">
+                  <Bot className="h-24 w-24 text-primary mx-auto" />
+                  <p className="text-lg text-muted-foreground">Job Automation Dashboard</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
