@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useSupabaseClient } from "@supabase/auth-helpers-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,37 +11,127 @@ import { useToast } from "@/hooks/use-toast";
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    fullName: ''
+  });
   const navigate = useNavigate();
   const { toast } = useToast();
+  const supabase = useSupabaseClient();
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-      toast({
-        title: "Account created successfully!",
-        description: "Welcome to Jobpilot.ai. Let's get you started.",
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            full_name: formData.fullName,
+          },
+          emailRedirectTo: `${window.location.origin}/dashboard`
+        }
       });
-      navigate("/dashboard");
-    }, 1500);
+
+      if (error) {
+        toast({
+          title: "Sign Up Error",
+          description: error.message,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (data.user && !data.session) {
+        toast({
+          title: "Check your email",
+          description: "We've sent you a confirmation link to complete your signup.",
+        });
+      } else if (data.session) {
+        toast({
+          title: "Account created successfully!",
+          description: "Welcome to Jobpilot.ai. Let's get you started.",
+        });
+        navigate("/dashboard");
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-      toast({
-        title: "Welcome back!",
-        description: "You've been successfully logged in.",
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
       });
-      navigate("/dashboard");
-    }, 1500);
+
+      if (error) {
+        toast({
+          title: "Login Error",
+          description: error.message,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (data.session) {
+        toast({
+          title: "Welcome back!",
+          description: "You've been successfully logged in.",
+        });
+        navigate("/dashboard");
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleAuth = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`
+        }
+      });
+
+      if (error) {
+        toast({
+          title: "Authentication Error",
+          description: error.message,
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to authenticate with Google. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -132,6 +223,8 @@ const Auth = () => {
                           type="text"
                           placeholder="Enter your full name"
                           className="pl-10"
+                          value={formData.fullName}
+                          onChange={(e) => handleInputChange('fullName', e.target.value)}
                           required
                         />
                       </div>
@@ -146,6 +239,8 @@ const Auth = () => {
                           type="email"
                           placeholder="Enter your email"
                           className="pl-10"
+                          value={formData.email}
+                          onChange={(e) => handleInputChange('email', e.target.value)}
                           required
                         />
                       </div>
@@ -160,6 +255,8 @@ const Auth = () => {
                           type="password"
                           placeholder="Create a password"
                           className="pl-10"
+                          value={formData.password}
+                          onChange={(e) => handleInputChange('password', e.target.value)}
                           required
                         />
                       </div>
@@ -188,6 +285,7 @@ const Auth = () => {
                       variant="outline" 
                       className="w-full mt-4"
                       type="button"
+                      onClick={handleGoogleAuth}
                     >
                       <Chrome className="mr-2 h-4 w-4" />
                       Sign up with Google
@@ -206,6 +304,8 @@ const Auth = () => {
                           type="email"
                           placeholder="Enter your email"
                           className="pl-10"
+                          value={formData.email}
+                          onChange={(e) => handleInputChange('email', e.target.value)}
                           required
                         />
                       </div>
@@ -220,6 +320,8 @@ const Auth = () => {
                           type="password"
                           placeholder="Enter your password"
                           className="pl-10"
+                          value={formData.password}
+                          onChange={(e) => handleInputChange('password', e.target.value)}
                           required
                         />
                       </div>
@@ -254,6 +356,7 @@ const Auth = () => {
                       variant="outline" 
                       className="w-full mt-4"
                       type="button"
+                      onClick={handleGoogleAuth}
                     >
                       <Chrome className="mr-2 h-4 w-4" />
                       Login with Google
