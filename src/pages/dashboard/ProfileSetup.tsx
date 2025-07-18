@@ -11,6 +11,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
 import { Separator } from "@/components/ui/separator";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { 
   Upload as UploadIcon, 
   FileText, 
@@ -56,6 +58,17 @@ const ProfileSetup = () => {
   
   const [newLocation, setNewLocation] = useState("");
   const [saving, setSaving] = useState(false);
+  const [roleOpen, setRoleOpen] = useState(false);
+
+  // Popular job roles for autocomplete
+  const popularJobRoles = [
+    "Product Manager", "Software Engineer", "Data Scientist", "Marketing Manager", 
+    "Sales Manager", "Business Analyst", "UX Designer", "DevOps Engineer",
+    "Project Manager", "Content Writer", "HR Manager", "Finance Manager",
+    "Operations Manager", "Customer Success Manager", "Growth Manager",
+    "Backend Developer", "Frontend Developer", "Full Stack Developer",
+    "Mobile Developer", "QA Engineer", "Scrum Master", "Technical Writer"
+  ];
 
   // Popular cities for suggestions
   const popularCities = [
@@ -274,13 +287,63 @@ const ProfileSetup = () => {
                     <User className="h-4 w-4" />
                     <span>Desired Role *</span>
                   </Label>
-                  <Input
-                    id="desired-role"
-                    value={preferences.desiredRole}
-                    onChange={(e) => setPreferences(prev => ({ ...prev, desiredRole: e.target.value }))}
-                    placeholder="e.g., Product Manager"
-                    className="text-base"
-                  />
+                  <Popover open={roleOpen} onOpenChange={setRoleOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={roleOpen}
+                        className="w-full justify-between text-base h-10"
+                      >
+                        {preferences.desiredRole || "e.g., Product Manager"}
+                        <ChevronRight className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0" align="start">
+                      <Command>
+                        <CommandInput 
+                          placeholder="Type to search roles..." 
+                          value={preferences.desiredRole}
+                          onValueChange={(value) => {
+                            setPreferences(prev => ({ ...prev, desiredRole: value }));
+                            if (value.length < 3) {
+                              setRoleOpen(false);
+                            } else {
+                              setRoleOpen(true);
+                            }
+                          }}
+                        />
+                        <CommandList>
+                          <CommandEmpty>No role found.</CommandEmpty>
+                          <CommandGroup>
+                            {preferences.desiredRole.length >= 3 && 
+                              popularJobRoles
+                                .filter(role => 
+                                  role.toLowerCase().includes(preferences.desiredRole.toLowerCase())
+                                )
+                                .map((role) => (
+                                  <CommandItem
+                                    key={role}
+                                    value={role}
+                                    onSelect={() => {
+                                      setPreferences(prev => ({ ...prev, desiredRole: role }));
+                                      setRoleOpen(false);
+                                    }}
+                                  >
+                                    <Check
+                                      className={`mr-2 h-4 w-4 ${
+                                        preferences.desiredRole === role ? "opacity-100" : "opacity-0"
+                                      }`}
+                                    />
+                                    {role}
+                                  </CommandItem>
+                                ))
+                            }
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   <p className="text-sm text-muted-foreground">
                     This helps us find the most relevant job opportunities for you
                   </p>
