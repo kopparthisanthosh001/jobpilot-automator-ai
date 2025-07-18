@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useUser } from "@supabase/auth-helpers-react";
+import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -44,60 +45,112 @@ const AllMatches = () => {
   }, []);
 
   const fetchJobMatches = async () => {
-    
     try {
       setLoading(true);
       
-      // For MVP, using mock data that simulates Indeed API results
-      // This would be replaced with actual Supabase integration once connected
-      const mockData: JobMatch[] = [
+      // Try to fetch real job matches from Supabase first
+      if (user?.id) {
+        const { data: jobMatches, error } = await supabase
+          .from('user_job_matches')
+          .select(`
+            id,
+            match_score,
+            status,
+            matched_at,
+            scraped_jobs (
+              id,
+              title,
+              company,
+              location,
+              description,
+              salary_range,
+              platform,
+              job_url,
+              created_at
+            )
+          `)
+          .eq('user_id', user.id)
+          .order('matched_at', { ascending: false });
+
+        if (!error && jobMatches && jobMatches.length > 0) {
+          // Transform Supabase data to JobMatch format
+          const transformedMatches: JobMatch[] = jobMatches.map((match: any) => ({
+            id: match.id,
+            title: match.scraped_jobs.title,
+            company: match.scraped_jobs.company,
+            location: match.scraped_jobs.location,
+            status: match.status,
+            platform: match.scraped_jobs.platform,
+            matched_at: match.matched_at,
+            job_url: match.scraped_jobs.job_url,
+            description: match.scraped_jobs.description
+          }));
+          
+          setJobMatches(transformedMatches);
+          return;
+        }
+      }
+
+      // Fallback to mock Indian job data if no real data or user not found
+      const mockIndianJobs: JobMatch[] = [
         {
           id: "1",
-          title: "Senior Frontend Developer",
-          company: "TechCorp Inc",
-          location: "San Francisco, CA",
+          title: "Senior Software Engineer",
+          company: "Tata Consultancy Services",
+          location: "Bangalore, India",
           status: "pending",
-          platform: "Indeed",
-          matched_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          job_url: "https://indeed.com/jobs/123",
-          description: "Join our team as a Senior Frontend Developer working with React, TypeScript, and modern web technologies."
+          platform: "naukri",
+          matched_at: new Date().toISOString(),
+          job_url: "https://naukri.com/jobs/12345",
+          description: "Looking for experienced software engineer with React.js and Node.js expertise. Work on cutting-edge projects for global clients."
         },
         {
           id: "2", 
-          title: "Full Stack Engineer",
-          company: "StartupXYZ",
-          location: "Remote",
+          title: "Full Stack Developer",
+          company: "Infosys Limited",
+          location: "Hyderabad, India",
           status: "applied",
-          platform: "Indeed",
-          matched_at: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-          job_url: "https://indeed.com/jobs/456",
-          description: "We're looking for a passionate Full Stack Engineer to help build our next-generation platform."
+          platform: "linkedin",
+          matched_at: new Date(Date.now() - 86400000).toISOString(),
+          job_url: "https://linkedin.com/jobs/67890",
+          description: "Full stack developer role with modern tech stack. Join our digital transformation team."
         },
         {
           id: "3",
-          title: "Product Manager",
-          company: "BigTech Ltd",
-          location: "New York, NY", 
-          status: "interview",
-          platform: "Indeed",
-          matched_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-          job_url: "https://indeed.com/jobs/789",
-          description: "Lead product strategy and work with cross-functional teams to deliver innovative solutions."
+          title: "React Developer",
+          company: "Wipro Technologies",
+          location: "Pune, India", 
+          status: "pending",
+          platform: "indeed",
+          matched_at: new Date(Date.now() - 172800000).toISOString(),
+          job_url: "https://indeed.com/jobs/54321",
+          description: "Frontend developer with React expertise. Work on enterprise applications for Fortune 500 clients."
         },
         {
           id: "4",
           title: "DevOps Engineer",
-          company: "CloudTech",
-          location: "Remote",
-          status: "pending",
-          platform: "Indeed", 
-          matched_at: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-          job_url: "https://indeed.com/jobs/101112",
-          description: "Build and maintain scalable infrastructure using AWS, Docker, and Kubernetes."
+          company: "HCL Technologies",
+          location: "Chennai, India",
+          status: "pending", 
+          platform: "naukri",
+          matched_at: new Date(Date.now() - 259200000).toISOString(),
+          job_url: "https://naukri.com/jobs/98765",
+          description: "DevOps engineer to manage cloud infrastructure and CI/CD pipelines. AWS experience preferred."
+        },
+        {
+          id: "5",
+          title: "Data Scientist",
+          company: "Tech Mahindra",
+          location: "Mumbai, India",
+          status: "interview",
+          platform: "linkedin",
+          matched_at: new Date(Date.now() - 345600000).toISOString(),
+          job_url: "https://linkedin.com/jobs/11111",
+          description: "Data scientist role to build ML models and analytics solutions. Python and R experience required."
         }
       ];
       
-      setJobMatches(mockData);
+      setJobMatches(mockIndianJobs);
     } catch (error) {
       console.error("Error fetching job matches:", error);
       toast({
