@@ -232,38 +232,54 @@ const AllMatches = () => {
     try {
       setApplying(true);
       const selectedJobsArray = Array.from(selectedJobs);
+      const selectedJobData = jobMatches.filter(job => selectedJobsArray.includes(job.id));
       
-      const response = await fetch("https://jobpilot-backend.onrender.com/apply", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: user?.email,
-          job_ids: selectedJobsArray,
-        }),
+      // Track applications in database
+      const applicationPromises = selectedJobData.map(async (job) => {
+        // Insert into applied_jobs table
+        await supabase.from('applied_jobs').insert({
+          user_id: user?.id,
+          job_title: job.title,
+          company: job.company,
+          job_url: job.job_url,
+          status: 'applied',
+          applied_on: new Date().toISOString()
+        });
+
+        // Update status in user_job_matches
+        await supabase
+          .from('user_job_matches')
+          .update({ status: 'applied' })
+          .eq('id', job.id);
       });
 
-      if (response.ok) {
-        toast({
-          title: "🎉 Applications Sent!",
-          description: `Successfully applied to ${selectedJobs.size} jobs.`,
-        });
-        
-        setJobMatches(prev => prev.map(job => 
-          selectedJobs.has(job.id) 
-            ? { ...job, status: "applied" as const }
-            : job
-        ));
-        
-        setSelectedJobs(new Set());
-      } else {
-        throw new Error("Failed to apply to jobs");
-      }
-    } catch (error) {
+      await Promise.all(applicationPromises);
+
+      // Open job URLs in new tabs
+      selectedJobData.forEach((job, index) => {
+        setTimeout(() => {
+          window.open(job.job_url, '_blank', 'noopener,noreferrer');
+        }, index * 500); // Delay each tab opening by 500ms
+      });
+
       toast({
-        title: "❌ Application failed",
-        description: "Please try again later.",
+        title: "🎉 Applications Started!",
+        description: `Opened ${selectedJobs.size} job applications in new tabs.`,
+      });
+      
+      // Update local state
+      setJobMatches(prev => prev.map(job => 
+        selectedJobs.has(job.id) 
+          ? { ...job, status: "applied" as const }
+          : job
+      ));
+      
+      setSelectedJobs(new Set());
+    } catch (error) {
+      console.error('Error applying to jobs:', error);
+      toast({
+        title: "❌ Application tracking failed",
+        description: "Jobs opened but tracking failed. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -335,7 +351,7 @@ const AllMatches = () => {
               <div>
                 <h1 className="text-2xl font-bold">All Job Matches</h1>
                 <p className="text-muted-foreground">
-                  🎯 Showing recent job matches based on your profile
+                  🎯 Select jobs and apply manually to open them in new tabs
                 </p>
               </div>
             </div>
@@ -463,6 +479,7 @@ const AllMatches = () => {
                   <TableHead>Job Title</TableHead>
                   <TableHead>Company</TableHead>
                   <TableHead>Location</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Salary</TableHead>
                   <TableHead>Platform</TableHead>
                   <TableHead>Date Posted</TableHead>
@@ -505,6 +522,7 @@ const AllMatches = () => {
                     </TableCell>
                     <TableCell className="font-medium">{job.company}</TableCell>
                     <TableCell className="text-muted-foreground">{job.location}</TableCell>
+                    <TableCell>{getStatusBadge(job.status)}</TableCell>
                     <TableCell className="text-muted-foreground">
                       {job.salary_range || 'Not disclosed'}
                     </TableCell>
@@ -579,7 +597,7 @@ const AllMatches = () => {
             {applying ? (
               <>
                 <Clock className="mr-2 h-5 w-5 animate-spin" />
-                Applying...
+                Opening Applications...
               </>
             ) : (
               <>
