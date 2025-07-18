@@ -444,7 +444,6 @@ const AllMatches = () => {
                   <TableHead>Company</TableHead>
                   <TableHead>Location</TableHead>
                   <TableHead>Salary</TableHead>
-                  <TableHead>Status</TableHead>
                   <TableHead>Platform</TableHead>
                   <TableHead>Matched At</TableHead>
                   <TableHead className="w-12"></TableHead>
@@ -486,7 +485,6 @@ const AllMatches = () => {
                     <TableCell className="text-muted-foreground">
                       {job.salary_range || 'Not disclosed'}
                     </TableCell>
-                    <TableCell>{getStatusBadge(job.status)}</TableCell>
                     <TableCell>
                       <Badge variant="outline">{job.platform}</Badge>
                     </TableCell>
