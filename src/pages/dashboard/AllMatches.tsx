@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "@/hooks/use-toast";
+import JobDetailsModal from "@/components/JobDetailsModal";
 import {
   Target, Eye, MoreVertical, ExternalLink, Copy, Filter,
   CheckCircle2, Clock, AlertCircle, Search, Send, RefreshCw
@@ -35,6 +36,8 @@ const AllMatches = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedJobs, setSelectedJobs] = useState<Set<string>>(new Set());
   const [applying, setApplying] = useState(false);
+  const [selectedJobForDetails, setSelectedJobForDetails] = useState<JobMatch | null>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   
   // Filter states
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -267,6 +270,15 @@ const AllMatches = () => {
     });
   };
 
+  const handleViewDetails = (job: JobMatch) => {
+    setSelectedJobForDetails(job);
+    setIsDetailsModalOpen(true);
+  };
+
+  const handleOpenJob = (url: string) => {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
   const filteredJobs = jobMatches.filter(job => {
     const statusMatch = statusFilter === "all" || job.status === statusFilter;
     const platformMatch = platformFilter === "all" || job.platform.toLowerCase().includes(platformFilter.toLowerCase());
@@ -464,20 +476,23 @@ const AllMatches = () => {
                       />
                     </TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0"
+                        onClick={() => handleViewDetails(job)}
+                      >
                         <Eye className="h-4 w-4" />
                       </Button>
                     </TableCell>
                     <TableCell>
                       <div className="space-y-1">
-                        <a 
-                          href={job.job_url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="font-medium hover:text-primary transition-colors"
+                        <button
+                          onClick={() => handleOpenJob(job.job_url)}
+                          className="font-medium hover:text-primary transition-colors text-left"
                         >
                           {job.title}
-                        </a>
+                        </button>
                       </div>
                     </TableCell>
                     <TableCell className="font-medium">{job.company}</TableCell>
@@ -499,15 +514,13 @@ const AllMatches = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleViewDetails(job)}>
                             <Eye className="mr-2 h-4 w-4" />
                             View Details
                           </DropdownMenuItem>
-                          <DropdownMenuItem asChild>
-                            <a href={job.job_url} target="_blank" rel="noopener noreferrer">
-                              <ExternalLink className="mr-2 h-4 w-4" />
-                              Open Job
-                            </a>
+                          <DropdownMenuItem onClick={() => handleOpenJob(job.job_url)}>
+                            <ExternalLink className="mr-2 h-4 w-4" />
+                            Open Job
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => copyJobLink(job.job_url)}>
                             <Copy className="mr-2 h-4 w-4" />
@@ -569,6 +582,13 @@ const AllMatches = () => {
           </Button>
         </div>
       )}
+
+      {/* Job Details Modal */}
+      <JobDetailsModal
+        job={selectedJobForDetails}
+        open={isDetailsModalOpen}
+        onOpenChange={setIsDetailsModalOpen}
+      />
     </div>
   );
 };
