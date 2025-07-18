@@ -195,8 +195,17 @@ const AllMatches = () => {
     } else if (diffInHours > 0) {
       return `${diffInHours}h ago`;
     } else {
-      return "Just now";
+      return "Today";
     }
+  };
+
+  const isToday = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInMs = now.getTime() - date.getTime();
+    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+    const diffInDays = Math.floor(diffInHours / 24);
+    return diffInDays === 0;
   };
 
   const handleSelectJob = (jobId: string, checked: boolean) => {
@@ -502,9 +511,9 @@ const AllMatches = () => {
                     <TableCell>
                       <Badge variant="outline">{job.platform}</Badge>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {getTimeAgo(job.date_posted)}
-                    </TableCell>
+                     <TableCell className={`${isToday(job.date_posted) ? 'text-green-600 font-medium' : 'text-muted-foreground'}`}>
+                       {getTimeAgo(job.date_posted)}
+                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
