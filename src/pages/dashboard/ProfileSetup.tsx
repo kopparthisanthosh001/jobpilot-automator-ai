@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "@supabase/auth-helpers-react";
@@ -7,7 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { User, MapPin, Code, Save, Loader2 } from "lucide-react";
@@ -92,8 +92,8 @@ const ProfileSetup = () => {
       const { data, error } = await supabase.functions.invoke('scrape-jobs', {
         body: { 
           user_id: user.id,
-          fetch_recent: true, // Flag to fetch only recent jobs
-          limit: 10 // Limit to 10 jobs
+          fetch_recent: true,
+          limit: 10
         }
       });
 
@@ -133,10 +133,10 @@ const ProfileSetup = () => {
       return;
     }
 
-    if (!fullName || !desiredRole || !experienceLevel) {
+    if (!fullName.trim() || !desiredRole || !experienceLevel) {
       toast({
         title: "Missing Information",
-        description: "Please fill in all required fields.",
+        description: "Please fill in all required fields (Full Name, Desired Role, and Experience Level).",
         variant: "destructive"
       });
       return;
@@ -145,11 +145,20 @@ const ProfileSetup = () => {
     setLoading(true);
 
     try {
+      console.log('Saving profile for user:', user.id);
+      console.log('Profile data:', {
+        fullName: fullName.trim(),
+        desiredRole,
+        experienceLevel,
+        skills,
+        preferredLocations
+      });
+
       const { error } = await supabase
         .from('profiles')
         .upsert({
           user_id: user.id,
-          full_name: fullName,
+          full_name: fullName.trim(),
           email: user.email,
           desired_role: desiredRole,
           experience_level: experienceLevel,
@@ -158,8 +167,13 @@ const ProfileSetup = () => {
           updated_at: new Date().toISOString()
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Profile save error:', error);
+        throw error;
+      }
 
+      console.log('Profile saved successfully');
+      
       toast({
         title: "✅ Profile Saved!",
         description: "Your profile has been updated successfully. We're now searching for matching jobs!",
@@ -177,7 +191,7 @@ const ProfileSetup = () => {
       console.error('Error saving profile:', error);
       toast({
         title: "Error",
-        description: "Failed to save profile. Please try again.",
+        description: `Failed to save profile: ${error.message || 'Please try again.'}`,
         variant: "destructive"
       });
     } finally {
@@ -211,7 +225,7 @@ const ProfileSetup = () => {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* form fields */}
+            {/* Basic Info */}
             <div className="grid md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="fullName">Full Name *</Label>
