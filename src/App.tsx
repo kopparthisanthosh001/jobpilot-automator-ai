@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import DashboardHome from "./pages/dashboard/DashboardHome";
 import ProfileSetup from "./pages/dashboard/ProfileSetup";
 import AppliedJobs from "./pages/dashboard/AppliedJobs";
+import AllMatches from "./pages/dashboard/AllMatches";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
             <Route index element={<DashboardHome />} />
             <Route path="profile-setup" element={<ProfileSetup />} />
             <Route path="applied" element={<AppliedJobs />} />
+            <Route path="matches" element={<AllMatches />} />
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

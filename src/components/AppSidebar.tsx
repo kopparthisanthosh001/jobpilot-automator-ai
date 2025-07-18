@@ -21,12 +21,14 @@ import {
   FileText, 
   LogOut, 
   Bot,
-  BarChart3
+  BarChart3,
+  Target
 } from "lucide-react";
 
 const menuItems = [
   { title: "Home", url: "/dashboard", icon: Home },
   { title: "Profile Setup", url: "/dashboard/profile-setup", icon: User },
+  { title: "All Matches", url: "/dashboard/matches", icon: Target },
   { title: "Auto Apply", url: "/dashboard/auto-apply", icon: Zap },
   { title: "Applied Jobs", url: "/dashboard/applied", icon: FileText },
   { title: "Analytics", url: "/dashboard/analytics", icon: BarChart3 },

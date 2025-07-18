@@ -230,13 +230,13 @@ const DashboardHome = () => {
                 </div>
               </Button>
             </Link>
-            <Link to="/dashboard/analytics">
+            <Link to="/dashboard/matches">
               <Button variant="outline" className="w-full justify-start h-auto p-4">
                 <div className="flex items-center space-x-3">
                   <Target className="h-5 w-5" />
                   <div className="text-left">
-                    <p className="font-medium">View Analytics</p>
-                    <p className="text-sm text-muted-foreground">See your job search performance</p>
+                    <p className="font-medium">View All Matches</p>
+                    <p className="text-sm text-muted-foreground">Browse and apply to matched jobs</p>
                   </div>
                 </div>
               </Button>
