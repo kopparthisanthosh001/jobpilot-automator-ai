@@ -40,13 +40,10 @@ const AllMatches = () => {
   const [keywordFilter, setKeywordFilter] = useState<string>("");
 
   useEffect(() => {
-    if (user?.email) {
-      fetchJobMatches();
-    }
-  }, [user]);
+    fetchJobMatches();
+  }, []);
 
   const fetchJobMatches = async () => {
-    if (!user?.id) return;
     
     try {
       setLoading(true);
