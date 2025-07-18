@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useUser } from "@supabase/auth-helpers-react";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,7 +20,7 @@ interface JobMatch {
   title: string;
   company: string;
   location: string;
-  status: "extension_supported" | "external_apply" | "email_sent";
+  status: "pending" | "applied" | "rejected" | "interview";
   platform: string;
   matched_at: string;
   job_url: string;
@@ -46,61 +47,75 @@ const AllMatches = () => {
   }, [user]);
 
   const fetchJobMatches = async () => {
+    if (!user?.id) return;
+    
     try {
       setLoading(true);
-      const response = await fetch(`https://jobpilot-backend.onrender.com/jobs?email=${user?.email}`);
       
-      if (response.ok) {
-        const data = await response.json();
-        // Transform the data to match our interface
-        const matches: JobMatch[] = data.map((job: any, index: number) => ({
-          id: job.id || `job-${index}`,
-          title: job.title || job.job_title || "Software Engineer",
-          company: job.company || "TechCorp",
-          location: job.location || "Remote",
-          status: Math.random() > 0.6 ? "extension_supported" : 
-                  Math.random() > 0.3 ? "external_apply" : "email_sent",
-          platform: job.platform || "LinkedIn",
-          matched_at: job.created_at || new Date().toISOString(),
-          job_url: job.url || job.link || "#",
-          description: job.description
-        }));
-        setJobMatches(matches);
-      } else {
-        // Mock data for demonstration
+      // Get user's job matches with job details from Supabase
+      const { data: matches, error } = await supabase
+        .from('user_job_matches')
+        .select(`
+          id,
+          match_score,
+          status,
+          matched_at,
+          scraped_jobs (
+            id,
+            title,
+            company,
+            location,
+            description,
+            platform,
+            job_url,
+            scraped_at
+          )
+        `)
+        .eq('user_id', user.id)
+        .order('matched_at', { ascending: false })
+        .limit(50);
+
+      if (error) {
+        console.error('Error fetching job matches:', error);
+        // Fallback to mock data for demo
         const mockData: JobMatch[] = [
           {
             id: "1",
             title: "Senior Frontend Developer",
             company: "TechCorp Inc",
             location: "San Francisco, CA",
-            status: "extension_supported",
-            platform: "LinkedIn",
+            status: "pending",
+            platform: "Indeed",
             matched_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-            job_url: "https://linkedin.com/jobs/123"
+            job_url: "https://indeed.com/jobs/123"
           },
           {
             id: "2", 
             title: "Product Manager",
             company: "StartupXYZ",
             location: "New York, NY",
-            status: "external_apply",
-            platform: "AngelList",
+            status: "applied",
+            platform: "Indeed",
             matched_at: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-            job_url: "https://angel.co/jobs/456"
-          },
-          {
-            id: "3",
-            title: "Full Stack Engineer",
-            company: "BigTech Ltd",
-            location: "Remote",
-            status: "email_sent",
-            platform: "Naukri",
-            matched_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-            job_url: "https://naukri.com/jobs/789"
+            job_url: "https://indeed.com/jobs/456"
           }
         ];
         setJobMatches(mockData);
+      } else {
+        // Transform the data to match our JobMatch interface
+        const transformedMatches: JobMatch[] = (matches || []).map((match: any) => ({
+          id: match.scraped_jobs?.id || match.id,
+          title: match.scraped_jobs?.title || 'Software Engineer',
+          company: match.scraped_jobs?.company || 'TechCorp',
+          location: match.scraped_jobs?.location || 'Remote',
+          status: match.status as JobMatch["status"],
+          platform: match.scraped_jobs?.platform || 'Indeed',
+          matched_at: match.matched_at,
+          job_url: match.scraped_jobs?.job_url || '#',
+          description: match.scraped_jobs?.description
+        }));
+        
+        setJobMatches(transformedMatches);
       }
     } catch (error) {
       console.error("Error fetching job matches:", error);
@@ -116,25 +131,32 @@ const AllMatches = () => {
 
   const getStatusBadge = (status: JobMatch["status"]) => {
     switch (status) {
-      case "extension_supported":
+      case "pending":
         return (
           <Badge variant="outline" className="text-primary border-primary/20 bg-primary/10">
-            <div className="w-2 h-2 bg-primary rounded-full mr-2"></div>
-            Extension Supported
+            <Clock className="w-3 h-3 mr-1" />
+            Pending
           </Badge>
         );
-      case "external_apply":
-        return (
-          <Badge variant="outline" className="text-orange-600 border-orange-600/20 bg-orange-600/10">
-            <AlertCircle className="w-3 h-3 mr-1" />
-            External Apply
-          </Badge>
-        );
-      case "email_sent":
+      case "applied":
         return (
           <Badge variant="outline" className="text-success border-success/20 bg-success/10">
             <CheckCircle2 className="w-3 h-3 mr-1" />
-            Email Sent
+            Applied
+          </Badge>
+        );
+      case "interview":
+        return (
+          <Badge variant="outline" className="text-orange-600 border-orange-600/20 bg-orange-600/10">
+            <AlertCircle className="w-3 h-3 mr-1" />
+            Interview
+          </Badge>
+        );
+      case "rejected":
+        return (
+          <Badge variant="outline" className="text-destructive border-destructive/20 bg-destructive/10">
+            <AlertCircle className="w-3 h-3 mr-1" />
+            Rejected
           </Badge>
         );
     }
@@ -201,7 +223,7 @@ const AllMatches = () => {
         // Update status of applied jobs
         setJobMatches(prev => prev.map(job => 
           selectedJobs.has(job.id) 
-            ? { ...job, status: "email_sent" as const }
+            ? { ...job, status: "applied" as const }
             : job
         ));
         
@@ -298,12 +320,13 @@ const AllMatches = () => {
                 <SelectTrigger>
                   <SelectValue placeholder="All Statuses" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="extension_supported">Extension Supported</SelectItem>
-                  <SelectItem value="external_apply">External Apply</SelectItem>
-                  <SelectItem value="email_sent">Email Sent</SelectItem>
-                </SelectContent>
+                 <SelectContent>
+                   <SelectItem value="all">All Statuses</SelectItem>
+                   <SelectItem value="pending">Pending</SelectItem>
+                   <SelectItem value="applied">Applied</SelectItem>
+                   <SelectItem value="interview">Interview</SelectItem>
+                   <SelectItem value="rejected">Rejected</SelectItem>
+                 </SelectContent>
               </Select>
             </div>
 
@@ -313,13 +336,14 @@ const AllMatches = () => {
                 <SelectTrigger>
                   <SelectValue placeholder="All Platforms" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Platforms</SelectItem>
-                  <SelectItem value="linkedin">LinkedIn</SelectItem>
-                  <SelectItem value="naukri">Naukri</SelectItem>
-                  <SelectItem value="angellist">AngelList</SelectItem>
-                  <SelectItem value="glassdoor">Glassdoor</SelectItem>
-                </SelectContent>
+                 <SelectContent>
+                   <SelectItem value="all">All Platforms</SelectItem>
+                   <SelectItem value="indeed">Indeed</SelectItem>
+                   <SelectItem value="linkedin">LinkedIn</SelectItem>
+                   <SelectItem value="naukri">Naukri</SelectItem>
+                   <SelectItem value="angellist">AngelList</SelectItem>
+                   <SelectItem value="glassdoor">Glassdoor</SelectItem>
+                 </SelectContent>
               </Select>
             </div>
 
