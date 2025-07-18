@@ -398,7 +398,7 @@ async function scrapeLinkedInNaukriJobs(role: string, location: string, jobLimit
   }
 }
 
-// Sample LinkedIn and Naukri jobs for when API key is not available
+// Sample LinkedIn and Naukri jobs for when API key is not available - ONLY LinkedIn and Naukri
 async function getRecentLinkedInNaukriJobs(limit: number): Promise<JobData[]> {
   const recentJobs: JobData[] = [
     {
@@ -455,13 +455,46 @@ async function getRecentLinkedInNaukriJobs(limit: number): Promise<JobData[]> {
       platform: 'linkedin',
       requirements: ['Business Analysis', 'Requirements Gathering', 'SQL'],
       benefits: ['Health Insurance', 'Skill Development']
+    },
+    {
+      title: 'Full Stack Developer',
+      company: 'Cognizant',
+      location: 'Bangalore, India',
+      description: 'Develop end-to-end web applications using modern technologies. Work with React, Node.js, and cloud platforms.',
+      salary_range: '₹9,00,000 - ₹15,00,000',
+      job_url: 'https://naukri.com/job-listings/fullstack-dev-006',
+      platform: 'naukri',
+      requirements: ['React', 'Node.js', 'MongoDB'],
+      benefits: ['Health Insurance', 'Work from Home']
+    },
+    {
+      title: 'DevOps Engineer',
+      company: 'Accenture',
+      location: 'Gurgaon, India',
+      description: 'Design and implement CI/CD pipelines. Work with AWS, Docker, and Kubernetes for scalable deployments.',
+      salary_range: '₹11,00,000 - ₹18,00,000',
+      job_url: 'https://linkedin.com/jobs/view/devops-007',
+      platform: 'linkedin',
+      requirements: ['AWS', 'Docker', 'Kubernetes'],
+      benefits: ['Health Coverage', 'Training Programs']
+    },
+    {
+      title: 'Data Scientist',
+      company: 'IBM',
+      location: 'Pune, India',
+      description: 'Build machine learning models and analyze large datasets. Work with Python, R, and cloud-based ML platforms.',
+      salary_range: '₹13,00,000 - ₹22,00,000',
+      job_url: 'https://naukri.com/job-listings/data-scientist-008',
+      platform: 'naukri',
+      requirements: ['Python', 'Machine Learning', 'SQL'],
+      benefits: ['Health Insurance', 'Research Time']
     }
   ].slice(0, limit)
 
   return recentJobs
 }
 
-// Enhanced match score calculation
+// Enhanced match score calculation with LinkedIn/Naukri bonus
 function calculateMatchScore(job: any, user: any): number {
   let score = 0
   
@@ -500,9 +533,9 @@ function calculateMatchScore(job: any, user: any): number {
     if (locationMatch) score += 0.1
   }
   
-  // Platform bonus for LinkedIn and Naukri
+  // Platform bonus for LinkedIn and Naukri (higher priority)
   if (job.platform === 'linkedin' || job.platform === 'naukri') {
-    score += 0.1
+    score += 0.15
   }
   
   // Salary range bonus

@@ -389,7 +389,6 @@ const AllMatches = () => {
                    <SelectItem value="indeed">Indeed</SelectItem>
                    <SelectItem value="linkedin">LinkedIn</SelectItem>
                    <SelectItem value="naukri">Naukri</SelectItem>
-                   <SelectItem value="company-website">Company Website</SelectItem>
                  </SelectContent>
               </Select>
             </div>
