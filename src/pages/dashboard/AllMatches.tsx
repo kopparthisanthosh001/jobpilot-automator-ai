@@ -51,39 +51,30 @@ const AllMatches = () => {
       // Try to fetch real job matches from Supabase first
       if (user?.id) {
         const { data: jobMatches, error } = await supabase
-          .from('user_job_matches')
+          .from('applied_jobs')
           .select(`
             id,
-            match_score,
+            job_title,
+            company,
+            job_url,
             status,
-            matched_at,
-            scraped_jobs (
-              id,
-              title,
-              company,
-              location,
-              description,
-              salary_range,
-              platform,
-              job_url,
-              created_at
-            )
+            applied_on
           `)
           .eq('user_id', user.id)
-          .order('matched_at', { ascending: false });
+          .order('applied_on', { ascending: false });
 
         if (!error && jobMatches && jobMatches.length > 0) {
           // Transform Supabase data to JobMatch format
           const transformedMatches: JobMatch[] = jobMatches.map((match: any) => ({
             id: match.id,
-            title: match.scraped_jobs.title,
-            company: match.scraped_jobs.company,
-            location: match.scraped_jobs.location,
+            title: match.job_title || 'Unknown Title',
+            company: match.company || 'Unknown Company',
+            location: 'Remote', // Default since location isn't in applied_jobs table
             status: match.status,
-            platform: match.scraped_jobs.platform,
-            matched_at: match.matched_at,
-            job_url: match.scraped_jobs.job_url,
-            description: match.scraped_jobs.description
+            platform: 'unknown', // Default since platform isn't in applied_jobs table
+            matched_at: match.applied_on,
+            job_url: match.job_url || '#',
+            description: 'Job application from your profile'
           }));
           
           setJobMatches(transformedMatches);
