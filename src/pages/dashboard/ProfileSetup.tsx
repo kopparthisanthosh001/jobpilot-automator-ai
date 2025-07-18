@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,6 +12,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
 import { Separator } from "@/components/ui/separator";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   Upload as UploadIcon, 
   FileText, 
@@ -33,7 +35,14 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const ProfileSetup = () => {
+interface ProfileSetupProps {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  asDialog?: boolean;
+}
+
+const ProfileSetup = ({ open = true, onOpenChange, asDialog = false }: ProfileSetupProps) => {
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [formCompleted, setFormCompleted] = useState(false);
   const { toast } = useToast();
@@ -188,42 +197,37 @@ const ProfileSetup = () => {
         description: "Your profile is ready. We'll start finding matching jobs for you.",
       });
       
-      // Auto-scroll to top to show completion message
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      // Navigate to all matches after a brief delay
+      setTimeout(() => {
+        if (asDialog && onOpenChange) {
+          onOpenChange(false);
+        }
+        navigate('/dashboard/matches');
+      }, 1500);
     }, 1000);
   };
 
   const isStep1Valid = preferences.desiredRole.trim().length > 0;
 
-  if (formCompleted) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Card className="w-full max-w-md mx-auto shadow-elegant border-0">
-          <CardContent className="p-8 text-center space-y-6">
-            <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto">
-              <Check className="w-8 h-8 text-success" />
-            </div>
-            <div className="space-y-2">
-              <h1 className="text-2xl font-bold">Setup Complete!</h1>
-              <p className="text-muted-foreground">
-                Your profile is ready. We'll start finding matching jobs for you every 2 hours.
-              </p>
-            </div>
-            <Button 
-              onClick={() => window.location.href = '/dashboard'} 
-              className="w-full bg-gradient-primary hover:opacity-90"
-            >
-              Go to Dashboard
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  const completionContent = formCompleted ? (
+    <Card className="w-full max-w-md mx-auto shadow-elegant border-0">
+      <CardContent className="p-8 text-center space-y-6">
+        <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto">
+          <Check className="w-8 h-8 text-success" />
+        </div>
+        <div className="space-y-2">
+          <h1 className="text-2xl font-bold">Setup Complete!</h1>
+          <p className="text-muted-foreground">
+            Redirecting to All Matches...
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  ) : null;
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+  const mainContent = (
+    <div className={asDialog ? "" : "min-h-screen bg-gradient-to-br from-background via-background to-muted/20"}>
+      <div className={`${asDialog ? "" : "container mx-auto px-4 py-8"} max-w-4xl`}>
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold mb-2">Complete Your Profile</h1>
@@ -601,6 +605,35 @@ const ProfileSetup = () => {
       </div>
     </div>
   );
+
+  if (formCompleted) {
+    return asDialog ? (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-md">
+          {completionContent}
+        </DialogContent>
+      </Dialog>
+    ) : (
+      <div className="min-h-screen flex items-center justify-center">
+        {completionContent}
+      </div>
+    );
+  }
+
+  if (asDialog) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Complete Your Profile</DialogTitle>
+          </DialogHeader>
+          {mainContent}
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  return mainContent;
 };
 
 export default ProfileSetup;
