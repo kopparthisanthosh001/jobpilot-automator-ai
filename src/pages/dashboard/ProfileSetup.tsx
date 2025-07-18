@@ -1,676 +1,385 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useUser } from "@supabase/auth-helpers-react";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Progress } from "@/components/ui/progress";
-import { Slider } from "@/components/ui/slider";
-import { Separator } from "@/components/ui/separator";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { 
-  Upload as UploadIcon, 
-  FileText, 
-  CheckCircle, 
-  AlertCircle,
-  X,
-  ArrowRight,
-  User,
-  MapPin, 
-  DollarSign, 
-  Brain,
-  Building,
-  Target,
-  Info,
-  Check,
-  Plus,
-  ChevronRight,
-  Settings,
-  Briefcase
-} from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
+import { User, MapPin, Code, Save, Loader2 } from "lucide-react";
 
-interface ProfileSetupProps {
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
-  asDialog?: boolean;
-}
-
-const ProfileSetup = ({ open = true, onOpenChange, asDialog = false }: ProfileSetupProps) => {
+const ProfileSetup = () => {
   const navigate = useNavigate();
-  const [currentStep, setCurrentStep] = useState(1);
-  const [formCompleted, setFormCompleted] = useState(false);
-  const { toast } = useToast();
-
-  // Resume upload state
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadedResume, setUploadedResume] = useState<string | null>(null);
-  const [extractSkills, setExtractSkills] = useState(false);
+  const user = useUser();
+  const [loading, setLoading] = useState(false);
+  const [scrapingJobs, setScrapingJobs] = useState(false);
   
-  // Job preferences state
-  const [preferences, setPreferences] = useState({
-    desiredRole: "",
-    locations: [] as string[],
-    salaryRange: [15],
-    keywords: "",
-    industries: [] as string[],
-  });
-  
-  const [newLocation, setNewLocation] = useState("");
-  const [saving, setSaving] = useState(false);
+  // form state variables
+  const [fullName, setFullName] = useState("");
+  const [desiredRole, setDesiredRole] = useState("");
+  const [experienceLevel, setExperienceLevel] = useState("");
+  const [skills, setSkills] = useState<string[]>([]);
+  const [skillInput, setSkillInput] = useState("");
+  const [preferredLocations, setPreferredLocations] = useState<string[]>([]);
+  const [locationInput, setLocationInput] = useState("");
 
-  // Popular cities for suggestions
-  const popularCities = [
-    "Bangalore", "Mumbai", "Delhi", "Hyderabad", "Chennai", "Pune", 
-    "Kolkata", "Ahmedabad", "Gurgaon", "Noida", "Remote"
-  ];
+  // useEffect for loading profile
+  useEffect(() => {
+    if (user?.id) {
+      loadProfile();
+    }
+  }, [user?.id]);
 
-  // Industry options with icons
-  const industryOptions = [
-    { id: "technology", label: "Technology", icon: "💻" },
-    { id: "fintech", label: "Fintech", icon: "💰" },
-    { id: "healthcare", label: "Healthcare", icon: "🏥" },
-    { id: "ecommerce", label: "E-commerce", icon: "🛒" },
-    { id: "education", label: "Education", icon: "📚" },
-    { id: "consulting", label: "Consulting", icon: "💼" },
-    { id: "startup", label: "Startup", icon: "🚀" },
-    { id: "enterprise", label: "Enterprise", icon: "🏢" },
-  ];
+  const loadProfile = async () => {
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user?.id)
+        .single();
 
-  // Resume upload handlers
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      if (file.type !== "application/pdf") {
-        toast({
-          title: "Invalid file type",
-          description: "Please select a PDF file only.",
-          variant: "destructive",
-        });
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error loading profile:', error);
         return;
       }
-      
-      if (file.size > 2 * 1024 * 1024) { // 2MB limit
-        toast({
-          title: "File too large",
-          description: "Please select a file smaller than 2MB.",
-          variant: "destructive",
-        });
-        return;
+
+      if (profile) {
+        setFullName(profile.full_name || "");
+        setDesiredRole(profile.desired_role || "");
+        setExperienceLevel(profile.experience_level || "");
+        setSkills(profile.skills || []);
+        setPreferredLocations(profile.preferred_locations || []);
       }
-      
-      setSelectedFile(file);
+    } catch (error) {
+      console.error('Error loading profile:', error);
     }
   };
 
-  const handleUpload = async () => {
-    if (!selectedFile) return;
-    
-    setUploading(true);
-    setUploadProgress(0);
-    
-    // Simulate upload progress
-    const interval = setInterval(() => {
-      setUploadProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setUploading(false);
-          setUploadedResume(selectedFile.name);
-          setSelectedFile(null);
-          toast({
-            title: "✅ Resume uploaded and parsed!",
-            description: "Your resume has been analyzed and is ready for job matching.",
-          });
-          return 100;
+  // helper functions for skills and locations
+  const addSkill = () => {
+    if (skillInput.trim() && !skills.includes(skillInput.trim())) {
+      setSkills([...skills, skillInput.trim()]);
+      setSkillInput("");
+    }
+  };
+
+  const removeSkill = (skillToRemove: string) => {
+    setSkills(skills.filter(skill => skill !== skillToRemove));
+  };
+
+  const addLocation = () => {
+    if (locationInput.trim() && !preferredLocations.includes(locationInput.trim())) {
+      setPreferredLocations([...preferredLocations, locationInput.trim()]);
+      setLocationInput("");
+    }
+  };
+
+  const removeLocation = (locationToRemove: string) => {
+    setPreferredLocations(preferredLocations.filter(location => location !== locationToRemove));
+  };
+
+  const triggerJobScraping = async () => {
+    if (!user?.id) return;
+
+    try {
+      setScrapingJobs(true);
+      console.log('Triggering job scraping for user:', user.id);
+
+      const { data, error } = await supabase.functions.invoke('scrape-jobs', {
+        body: { 
+          user_id: user.id,
+          fetch_recent: true, // Flag to fetch only recent jobs
+          limit: 10 // Limit to 10 jobs
         }
-        return prev + 10;
       });
-    }, 200);
-  };
 
-  const handleRemoveResume = () => {
-    setUploadedResume(null);
-    toast({
-      title: "Resume removed",
-      description: "Your resume has been removed from the system.",
-    });
-  };
-
-  // Job preferences handlers
-  const addLocation = (location: string) => {
-    if (location.trim() && !preferences.locations.includes(location.trim())) {
-      setPreferences(prev => ({
-        ...prev,
-        locations: [...prev.locations, location.trim()]
-      }));
-      setNewLocation("");
+      if (error) {
+        console.error('Error triggering job scraping:', error);
+        toast({
+          title: "Job Search Started",
+          description: "We're searching for jobs in the background. You can check the results in All Matches.",
+        });
+      } else {
+        console.log('Job scraping response:', data);
+        toast({
+          title: "🎯 Jobs Found!",
+          description: "We've found relevant job matches for you. Check them out in All Matches!",
+        });
+      }
+    } catch (error) {
+      console.error('Unexpected error during job scraping:', error);
+      toast({
+        title: "Job Search Started",
+        description: "We're searching for jobs based on your profile. Check All Matches in a few minutes.",
+      });
+    } finally {
+      setScrapingJobs(false);
     }
   };
 
-  const removeLocation = (location: string) => {
-    setPreferences(prev => ({
-      ...prev,
-      locations: prev.locations.filter(l => l !== location)
-    }));
-  };
-
-  const toggleIndustry = (industryId: string) => {
-    setPreferences(prev => ({
-      ...prev,
-      industries: prev.industries.includes(industryId)
-        ? prev.industries.filter(i => i !== industryId)
-        : [...prev.industries, industryId]
-    }));
-  };
-
-  const handleContinueToResume = () => {
-    if (!preferences.desiredRole.trim()) {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!user?.id) {
       toast({
-        title: "Required field missing",
-        description: "Please enter your desired role to continue.",
-        variant: "destructive",
+        title: "Error",
+        description: "You must be logged in to save your profile.",
+        variant: "destructive"
       });
       return;
     }
-    
-    setCurrentStep(2);
-    // Auto-scroll to top
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
 
-  const handleCompleteSetup = async () => {
-    setSaving(true);
-    
-    try {
-      // Save profile data to Supabase
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (user) {
-        const { error } = await supabase
-          .from('profiles')
-          .upsert({
-            user_id: user.id,
-            full_name: '', // Will be filled from auth metadata
-            email: user.email,
-            desired_role: preferences.desiredRole,
-            experience_level: 'intermediate', // Default value
-            preferred_locations: preferences.locations,
-            skills: preferences.keywords.split(',').map(skill => skill.trim()).filter(Boolean),
-            updated_at: new Date().toISOString()
-          });
-
-        if (error) {
-          console.error('Error saving profile:', error);
-          toast({
-            title: "Error saving profile",
-            description: "There was an error saving your profile. Please try again.",
-            variant: "destructive"
-          });
-          setSaving(false);
-          return;
-        }
-      }
-
-      setSaving(false);
-      setFormCompleted(true);
+    if (!fullName || !desiredRole || !experienceLevel) {
       toast({
-        title: "🎉 Setup Complete!",
-        description: "Your profile is ready. We'll start finding matching jobs for you.",
-      });
-      
-      // Navigate to all matches after a brief delay
-      setTimeout(() => {
-        if (asDialog && onOpenChange) {
-          onOpenChange(false);
-        }
-        navigate('/dashboard/matches');
-      }, 1500);
-    } catch (error) {
-      console.error('Error completing profile setup:', error);
-      setSaving(false);
-      toast({
-        title: "Error",
-        description: "There was an error completing your profile setup. Please try again.",
+        title: "Missing Information",
+        description: "Please fill in all required fields.",
         variant: "destructive"
       });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({
+          user_id: user.id,
+          full_name: fullName,
+          email: user.email,
+          desired_role: desiredRole,
+          experience_level: experienceLevel,
+          skills: skills,
+          preferred_locations: preferredLocations,
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "✅ Profile Saved!",
+        description: "Your profile has been updated successfully. We're now searching for matching jobs!",
+      });
+
+      // Trigger job scraping after successful profile save
+      await triggerJobScraping();
+
+      // Navigate to All Matches after a short delay
+      setTimeout(() => {
+        navigate('/dashboard/matches');
+      }, 2000);
+
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save profile. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const isStep1Valid = preferences.desiredRole.trim().length > 0;
-
-  const completionContent = formCompleted ? (
-    <Card className="w-full max-w-md mx-auto shadow-elegant border-0">
-      <CardContent className="p-8 text-center space-y-6">
-        <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto">
-          <Check className="w-8 h-8 text-success" />
-        </div>
-        <div className="space-y-2">
-          <h1 className="text-2xl font-bold">Setup Complete!</h1>
-          <p className="text-muted-foreground">
-            Redirecting to All Matches...
-          </p>
-        </div>
-      </CardContent>
-    </Card>
-  ) : null;
-
-  const mainContent = (
-    <div className={asDialog ? "" : "min-h-screen bg-gradient-to-br from-background via-background to-muted/20"}>
-      <div className={`${asDialog ? "" : "container mx-auto px-4 py-8"} max-w-4xl`}>
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2">Complete Your Profile</h1>
-          <p className="text-muted-foreground text-lg">
-            Let's set up your job preferences and resume for better matching
-          </p>
-        </div>
-
-        {/* Step Indicator */}
-        <div className="flex items-center justify-center mb-8">
-          <div className="flex items-center space-x-4">
-            <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all duration-300 ${
-              currentStep >= 1 ? 'bg-primary border-primary text-primary-foreground' : 'border-muted-foreground text-muted-foreground'
-            }`}>
-              {currentStep > 1 ? <Check className="w-5 h-5" /> : <span className="font-semibold">1</span>}
+  return (
+    <div className="space-y-6">
+      {/* Header Card */}
+      <Card className="shadow-card border-0 bg-gradient-hero">
+        <CardContent className="p-6">
+          <div className="flex items-center space-x-3">
+            <div className="p-3 rounded-full bg-primary/10">
+              <User className="h-6 w-6 text-primary" />
             </div>
-            <span className={`text-sm font-medium ${currentStep >= 1 ? 'text-primary' : 'text-muted-foreground'}`}>
-              Job Preferences
-            </span>
-            
-            <ChevronRight className="w-5 h-5 text-muted-foreground" />
-            
-            <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all duration-300 ${
-              currentStep >= 2 ? 'bg-primary border-primary text-primary-foreground' : 'border-muted-foreground text-muted-foreground'
-            }`}>
-              <span className="font-semibold">2</span>
-            </div>
-            <span className={`text-sm font-medium ${currentStep >= 2 ? 'text-primary' : 'text-muted-foreground'}`}>
-              Resume Upload
-            </span>
-          </div>
-        </div>
-
-        {/* Step 1: Job Preferences */}
-        {currentStep === 1 && (
-          <div className="space-y-6 animate-fade-in">
-            <Card className="shadow-elegant border-0">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center space-x-2">
-                  <Target className="h-5 w-5 text-primary" />
-                  <span>Step 1 of 2 – Job Preferences</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Desired Role */}
-                <div className="space-y-2">
-                  <Label htmlFor="desired-role" className="flex items-center space-x-2">
-                    <User className="h-4 w-4" />
-                    <span>Desired Role *</span>
-                  </Label>
-                  <Input
-                    id="desired-role"
-                    value={preferences.desiredRole}
-                    onChange={(e) => setPreferences(prev => ({ ...prev, desiredRole: e.target.value }))}
-                    placeholder="e.g., Product Manager"
-                    className="text-base"
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    This helps us find the most relevant job opportunities for you
-                  </p>
-                </div>
-
-                <Separator />
-
-                {/* Preferred Locations */}
-                <div className="space-y-4">
-                  <Label className="flex items-center space-x-2">
-                    <MapPin className="h-4 w-4" />
-                    <span>Preferred Locations</span>
-                  </Label>
-                  
-                  <div className="space-y-3">
-                    <div className="flex flex-wrap gap-2">
-                      {popularCities.map((city) => (
-                        <Button
-                          key={city}
-                          variant={preferences.locations.includes(city) ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => preferences.locations.includes(city) ? removeLocation(city) : addLocation(city)}
-                          className="text-sm"
-                        >
-                          {city}
-                        </Button>
-                      ))}
-                    </div>
-                    
-                    <div className="flex space-x-2">
-                      <Input
-                        value={newLocation}
-                        onChange={(e) => setNewLocation(e.target.value)}
-                        placeholder="Add custom location"
-                        onKeyPress={(e) => e.key === 'Enter' && addLocation(newLocation)}
-                        className="flex-1"
-                      />
-                      <Button 
-                        onClick={() => addLocation(newLocation)} 
-                        variant="outline" 
-                        size="sm"
-                        disabled={!newLocation.trim()}
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  {preferences.locations.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-3">
-                      {preferences.locations.map((location) => (
-                        <Badge key={location} variant="secondary" className="flex items-center space-x-1">
-                          <span>{location}</span>
-                          <button
-                            onClick={() => removeLocation(location)}
-                            className="ml-1 hover:text-destructive"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <Separator />
-
-                {/* Expected Salary */}
-                <div className="space-y-4">
-                  <Label className="flex items-center space-x-2">
-                    <DollarSign className="h-4 w-4" />
-                    <span>Expected Salary (LPA)</span>
-                  </Label>
-                  
-                  <div className="space-y-3">
-                    <div className="px-4">
-                      <Slider
-                        value={preferences.salaryRange}
-                        onValueChange={(value) => setPreferences(prev => ({ ...prev, salaryRange: value }))}
-                        max={100}
-                        min={0}
-                        step={1}
-                        className="w-full"
-                      />
-                    </div>
-                    
-                    <div className="flex items-center justify-between text-sm text-muted-foreground">
-                      <span>₹0 LPA</span>
-                      <div className="font-semibold text-primary text-base">
-                        ₹{preferences.salaryRange[0]} LPA
-                      </div>
-                      <span>₹100+ LPA</span>
-                    </div>
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Skills & Keywords */}
-                <div className="space-y-2">
-                  <Label htmlFor="keywords" className="flex items-center space-x-2">
-                    <Brain className="h-4 w-4" />
-                    <span>Skills & Keywords</span>
-                  </Label>
-                  <Textarea
-                    id="keywords"
-                    value={preferences.keywords}
-                    onChange={(e) => setPreferences(prev => ({ ...prev, keywords: e.target.value }))}
-                    placeholder="e.g., JavaScript, React, Product Management, Data Analysis"
-                    rows={3}
-                    className="text-base"
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Add at least 3 keywords to improve job matching accuracy
-                  </p>
-                </div>
-
-                <Separator />
-
-                {/* Preferred Industries */}
-                <div className="space-y-4">
-                  <Label className="flex items-center space-x-2">
-                    <Building className="h-4 w-4" />
-                    <span>Preferred Industries</span>
-                  </Label>
-                  
-                  <div className="grid grid-cols-2 gap-3">
-                    {industryOptions.map((industry) => (
-                      <div
-                        key={industry.id}
-                        onClick={() => toggleIndustry(industry.id)}
-                        className={`p-3 rounded-lg border cursor-pointer transition-all duration-200 hover:shadow-md ${
-                          preferences.industries.includes(industry.id)
-                            ? 'border-primary bg-primary/5 shadow-sm'
-                            : 'border-border hover:border-primary/50'
-                        }`}
-                      >
-                        <div className="flex items-center space-x-2">
-                          <span className="text-lg">{industry.icon}</span>
-                          <span className="font-medium">{industry.label}</span>
-                          {preferences.industries.includes(industry.id) && (
-                            <Check className="h-4 w-4 text-primary ml-auto" />
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Continue Button - Sticky on Mobile */}
-            <div className="sticky bottom-0 bg-background/80 backdrop-blur-md border-t p-4 -mx-4 md:relative md:bg-transparent md:border-0 md:p-0 md:mx-0">
-              <Button
-                onClick={handleContinueToResume}
-                disabled={!isStep1Valid}
-                className="w-full bg-gradient-primary hover:opacity-90 shadow-elegant h-12 text-base font-semibold"
-              >
-                Continue to Resume Upload
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
+            <div>
+              <h1 className="text-2xl font-bold">Complete Your Profile</h1>
+              <p className="text-muted-foreground">
+                🎯 Help us find the perfect job matches for you
+              </p>
             </div>
           </div>
-        )}
+        </CardContent>
+      </Card>
 
-        {/* Step 2: Resume Upload */}
-        {currentStep === 2 && (
-          <div className="space-y-6 animate-fade-in">
-            <Card className="shadow-elegant border-0">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center space-x-2">
-                  <UploadIcon className="h-5 w-5 text-primary" />
-                  <span>Step 2 of 2 – Resume Upload</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {!uploadedResume ? (
-                  <div className="space-y-4">
-                    <div className="border-2 border-dashed border-border rounded-lg p-8 text-center space-y-4 hover:border-primary/50 transition-colors">
-                      <UploadIcon className="h-12 w-12 text-muted-foreground mx-auto" />
-                      <div className="space-y-2">
-                        <p className="text-lg font-medium">Upload your resume</p>
-                        <p className="text-sm text-muted-foreground">
-                          PDF format only, max size 2MB, ATS-friendly preferred
-                        </p>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="resume-upload" className="sr-only">
-                          Resume file
-                        </Label>
-                        <Input
-                          id="resume-upload"
-                          type="file"
-                          accept=".pdf"
-                          onChange={handleFileSelect}
-                          className="max-w-xs mx-auto border-2 border-primary border-dashed bg-primary/5 hover:bg-primary/10 hover:border-primary/80 transition-all duration-200 p-4 rounded-lg cursor-pointer focus:ring-2 focus:ring-primary/20"
-                        />
-                      </div>
-                    </div>
+      {/* Profile Form */}
+      <Card className="shadow-card border-0">
+        <CardHeader>
+          <CardTitle>Your Information</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* form fields */}
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="fullName">Full Name *</Label>
+                <Input
+                  id="fullName"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Enter your full name"
+                  required
+                />
+              </div>
 
-                    {selectedFile && (
-                      <div className="space-y-4">
-                        <div className="flex items-center space-x-3 p-4 bg-muted/30 rounded-lg">
-                          <FileText className="h-5 w-5 text-primary" />
-                          <div className="flex-1">
-                            <p className="font-medium">{selectedFile.name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                            </p>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setSelectedFile(null)}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="extract-skills"
-                            checked={extractSkills}
-                            onCheckedChange={(checked) => setExtractSkills(checked === true)}
-                          />
-                          <Label htmlFor="extract-skills" className="text-sm">
-                            Extract skills from resume automatically
-                          </Label>
-                        </div>
-
-                        {uploading && (
-                          <div className="space-y-2">
-                            <div className="flex justify-between text-sm">
-                              <span>Uploading...</span>
-                              <span>{uploadProgress}%</span>
-                            </div>
-                            <Progress value={uploadProgress} className="h-2" />
-                          </div>
-                        )}
-
-                        <Button
-                          onClick={handleUpload}
-                          disabled={uploading}
-                          className="w-full bg-gradient-primary hover:opacity-90 h-12 text-base font-semibold"
-                        >
-                          {uploading ? "Uploading..." : "Upload Resume"}
-                          <UploadIcon className="ml-2 h-5 w-5" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <Alert className="border-success/20 bg-success/5">
-                      <CheckCircle className="h-4 w-4 text-success" />
-                      <AlertDescription className="text-success">
-                        ✅ Resume Uploaded Successfully
-                      </AlertDescription>
-                    </Alert>
-
-                    <div className="flex items-center space-x-3 p-4 bg-success/10 border border-success/20 rounded-lg">
-                      <FileText className="h-6 w-6 text-success" />
-                      <div className="flex-1">
-                        <p className="font-medium text-success">{uploadedResume}</p>
-                        <p className="text-sm text-muted-foreground">
-                          Uploaded on {new Date().toLocaleDateString()} • {(2.1).toFixed(1)} MB
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex space-x-3">
-                      <Label htmlFor="resume-replace" className="sr-only">
-                        Replace resume
-                      </Label>
-                      <Input
-                        id="resume-replace"
-                        type="file"
-                        accept=".pdf"
-                        onChange={handleFileSelect}
-                        className="flex-1"
-                      />
-                      <Button
-                        variant="outline"
-                        onClick={handleRemoveResume}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Complete Setup Button - Sticky on Mobile */}
-            <div className="sticky bottom-0 bg-background/80 backdrop-blur-md border-t p-4 -mx-4 md:relative md:bg-transparent md:border-0 md:p-0 md:mx-0">
-              <div className="flex space-x-3">
-                <Button
-                  onClick={() => setCurrentStep(1)}
-                  variant="outline"
-                  className="flex-1 md:flex-none md:w-auto"
-                >
-                  Back
-                </Button>
-                <Button
-                  onClick={handleCompleteSetup}
-                  disabled={saving}
-                  className="flex-1 bg-gradient-primary hover:opacity-90 shadow-elegant h-12 text-base font-semibold"
-                >
-                  {saving ? "Saving..." : "Complete Setup"}
-                  <Check className="ml-2 h-5 w-5" />
-                </Button>
+              <div className="space-y-2">
+                <Label htmlFor="desiredRole">Desired Role *</Label>
+                <Select value={desiredRole} onValueChange={setDesiredRole} required>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select your desired role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Software Engineer">Software Engineer</SelectItem>
+                    <SelectItem value="Full Stack Developer">Full Stack Developer</SelectItem>
+                    <SelectItem value="Frontend Developer">Frontend Developer</SelectItem>
+                    <SelectItem value="Backend Developer">Backend Developer</SelectItem>
+                    <SelectItem value="DevOps Engineer">DevOps Engineer</SelectItem>
+                    <SelectItem value="Data Scientist">Data Scientist</SelectItem>
+                    <SelectItem value="Product Manager">Product Manager</SelectItem>
+                    <SelectItem value="UI/UX Designer">UI/UX Designer</SelectItem>
+                    <SelectItem value="React Developer">React Developer</SelectItem>
+                    <SelectItem value="Node.js Developer">Node.js Developer</SelectItem>
+                    <SelectItem value="Python Developer">Python Developer</SelectItem>
+                    <SelectItem value="Java Developer">Java Developer</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-          </div>
-        )}
-      </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="experienceLevel">Experience Level *</Label>
+              <Select value={experienceLevel} onValueChange={setExperienceLevel} required>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select your experience level" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Entry Level">Entry Level (0-2 years)</SelectItem>
+                  <SelectItem value="Mid Level">Mid Level (2-5 years)</SelectItem>
+                  <SelectItem value="Senior Level">Senior Level (5-8 years)</SelectItem>
+                  <SelectItem value="Lead Level">Lead Level (8+ years)</SelectItem>
+                  <SelectItem value="Executive Level">Executive Level</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Skills Section */}
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Code className="h-5 w-5 text-primary" />
+                <Label>Technical Skills</Label>
+              </div>
+              
+              <div className="flex space-x-2">
+                <Input
+                  value={skillInput}
+                  onChange={(e) => setSkillInput(e.target.value)}
+                  placeholder="Add a skill (e.g., React, Python, AWS)"
+                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
+                />
+                <Button type="button" onClick={addSkill} variant="outline">
+                  Add
+                </Button>
+              </div>
+
+              {skills.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {skills.map((skill) => (
+                    <Badge
+                      key={skill}
+                      variant="secondary"
+                      className="cursor-pointer"
+                      onClick={() => removeSkill(skill)}
+                    >
+                      {skill} ×
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Locations Section */}
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <MapPin className="h-5 w-5 text-primary" />
+                <Label>Preferred Locations</Label>
+              </div>
+              
+              <div className="flex space-x-2">
+                <Input
+                  value={locationInput}
+                  onChange={(e) => setLocationInput(e.target.value)}
+                  placeholder="Add a location (e.g., Bangalore, Mumbai, Remote)"
+                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addLocation())}
+                />
+                <Button type="button" onClick={addLocation} variant="outline">
+                  Add
+                </Button>
+              </div>
+
+              {preferredLocations.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {preferredLocations.map((location) => (
+                    <Badge
+                      key={location}
+                      variant="secondary"
+                      className="cursor-pointer"
+                      onClick={() => removeLocation(location)}
+                    >
+                      {location} ×
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Submit Button */}
+            <div className="flex justify-end">
+              <Button
+                type="submit"
+                disabled={loading || scrapingJobs}
+                className="bg-gradient-primary hover:opacity-90 px-8"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving Profile...
+                  </>
+                ) : scrapingJobs ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Finding Jobs...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Save & Find Jobs
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      {scrapingJobs && (
+        <Card className="shadow-card border-0 bg-primary/5">
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-3">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              <div>
+                <p className="font-medium">🔍 Searching for Jobs...</p>
+                <p className="text-sm text-muted-foreground">
+                  We're finding the latest job postings that match your profile. This will take a moment.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
-
-  if (formCompleted) {
-    return asDialog ? (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-md">
-          {completionContent}
-        </DialogContent>
-      </Dialog>
-    ) : (
-      <div className="min-h-screen flex items-center justify-center">
-        {completionContent}
-      </div>
-    );
-  }
-
-  if (asDialog) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Complete Your Profile</DialogTitle>
-          </DialogHeader>
-          {mainContent}
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
-  return mainContent;
 };
 
 export default ProfileSetup;

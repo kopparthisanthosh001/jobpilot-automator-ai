@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -43,45 +44,98 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Get all users with profiles to scrape for
-    const { data: users, error: usersError } = await supabase
-      .from('profiles')
-      .select('user_id, full_name, email, desired_role')
-      .not('desired_role', 'is', null)
+    const requestBody = await req.json().catch(() => ({}))
+    const { user_id, fetch_recent = false, limit = 50 } = requestBody
 
-    if (usersError) throw usersError
+    console.log('Scrape jobs request:', { user_id, fetch_recent, limit })
 
-    console.log('Found users:', users?.length || 0)
+    let targetUsers = []
+
+    // If specific user_id provided, get that user's profile
+    if (user_id) {
+      const { data: userProfile, error: userError } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, email, desired_role, preferred_locations, skills')
+        .eq('user_id', user_id)
+        .single()
+
+      if (userError) {
+        console.error('Error fetching user profile:', userError)
+        throw new Error('User profile not found')
+      }
+
+      if (userProfile) {
+        targetUsers = [userProfile]
+      }
+    } else {
+      // Get all users with profiles for bulk scraping
+      const { data: users, error: usersError } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, email, desired_role, preferred_locations, skills')
+        .not('desired_role', 'is', null)
+
+      if (usersError) throw usersError
+      targetUsers = users || []
+    }
+
+    console.log('Target users for job scraping:', targetUsers.length)
 
     const allJobs: JobData[] = []
     
-    // Scrape jobs from JSearch API for Indian market
-    for (const role of TECH_ROLES) {
-      for (const city of INDIAN_CITIES.slice(0, 6)) { // Focus on top 6 cities
+    // Determine which roles and locations to search for
+    let rolesToSearch = TECH_ROLES
+    let locationsToSearch = INDIAN_CITIES.slice(0, 6) // Top 6 cities
+
+    if (fetch_recent && targetUsers.length === 1) {
+      // For individual user, focus on their preferences
+      const user = targetUsers[0]
+      if (user.desired_role) {
+        rolesToSearch = [user.desired_role]
+      }
+      if (user.preferred_locations && user.preferred_locations.length > 0) {
+        locationsToSearch = user.preferred_locations.slice(0, 3) // Max 3 locations
+      }
+    }
+
+    // Scrape jobs from JSearch API for targeted search
+    for (const role of rolesToSearch) {
+      for (const city of locationsToSearch) {
         try {
-          const jobs = await scrapeJSearchJobs(role, city)
+          const jobs = await scrapeJSearchJobs(role, city, fetch_recent ? 5 : 10)
           allJobs.push(...jobs)
           
           // Add delay to avoid rate limiting
           await new Promise(resolve => setTimeout(resolve, 500))
+          
+          // Break early if we have enough jobs for recent fetch
+          if (fetch_recent && allJobs.length >= limit) {
+            break
+          }
         } catch (error) {
           console.error(`Error scraping ${role} in ${city}:`, error)
         }
       }
+      if (fetch_recent && allJobs.length >= limit) {
+        break
+      }
     }
 
-    // Also add some sample Naukri-style jobs
-    try {
-      const naukriJobs = await scrapeNaukriJobs()
-      allJobs.push(...naukriJobs)
-    } catch (error) {
-      console.error('Error scraping Naukri:', error)
+    // Add some sample recent Indian jobs if not enough found
+    if (fetch_recent && allJobs.length < limit) {
+      try {
+        const recentJobs = await getRecentIndianJobs(limit - allJobs.length)
+        allJobs.push(...recentJobs)
+      } catch (error) {
+        console.error('Error getting recent jobs:', error)
+      }
     }
 
-    // Remove duplicates based on job URL
-    const uniqueJobs = allJobs.filter((job, index, self) => 
-      index === self.findIndex(j => j.job_url === job.job_url)
-    )
+    // Remove duplicates and limit results
+    const uniqueJobs = allJobs
+      .filter((job, index, self) => 
+        index === self.findIndex(j => j.job_url === job.job_url)
+      )
+      .slice(0, limit)
 
     console.log(`Scraped ${uniqueJobs.length} unique jobs`)
 
@@ -91,24 +145,47 @@ serve(async (req) => {
       .insert(uniqueJobs)
       .select()
 
-    if (insertError) throw insertError
+    if (insertError) {
+      console.error('Insert error:', insertError)
+      throw insertError
+    }
 
     console.log(`Inserted ${insertedJobs?.length || 0} unique jobs`)
 
-    // Match jobs to users based on their desired role
-    for (const user of users) {
+    // Create job matches for target users
+    for (const user of targetUsers) {
       if (!user.desired_role) continue
 
-      const matchingJobs = insertedJobs?.filter(job => 
-        job.title.toLowerCase().includes(user.desired_role.toLowerCase()) ||
-        job.description.toLowerCase().includes(user.desired_role.toLowerCase())
-      ) || []
+      const matchingJobs = insertedJobs?.filter(job => {
+        // Match based on role
+        const roleMatch = job.title.toLowerCase().includes(user.desired_role.toLowerCase()) ||
+                         job.description?.toLowerCase().includes(user.desired_role.toLowerCase())
+        
+        // Match based on skills if available
+        let skillMatch = true
+        if (user.skills && user.skills.length > 0) {
+          const jobText = `${job.title} ${job.description}`.toLowerCase()
+          skillMatch = user.skills.some(skill => 
+            jobText.includes(skill.toLowerCase())
+          )
+        }
+
+        // Match based on location if available
+        let locationMatch = true
+        if (user.preferred_locations && user.preferred_locations.length > 0) {
+          locationMatch = user.preferred_locations.some(location => 
+            job.location?.toLowerCase().includes(location.toLowerCase())
+          )
+        }
+
+        return roleMatch && (skillMatch || locationMatch)
+      }) || []
 
       // Create job matches for this user
       const jobMatches = matchingJobs.map(job => ({
         user_id: user.user_id,
         job_id: job.id,
-        match_score: calculateMatchScore(job, user.desired_role),
+        match_score: calculateMatchScore(job, user),
         status: 'pending'
       }))
 
@@ -129,8 +206,8 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         jobsScraped: uniqueJobs.length,
-        usersProcessed: users.length,
-        message: 'Indian jobs scraped and matches created successfully'
+        usersProcessed: targetUsers.length,
+        message: fetch_recent ? 'Recent jobs scraped and matches created successfully' : 'Jobs scraped and matches created successfully'
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -151,7 +228,7 @@ serve(async (req) => {
 })
 
 // Scrape jobs using JSearch API (RapidAPI)
-async function scrapeJSearchJobs(role: string, location: string): Promise<JobData[]> {
+async function scrapeJSearchJobs(role: string, location: string, jobLimit: number = 10): Promise<JobData[]> {
   const rapidApiKey = Deno.env.get('RAPIDAPI_KEY')
   if (!rapidApiKey) {
     console.error('RAPIDAPI_KEY not found in environment variables')
@@ -159,7 +236,10 @@ async function scrapeJSearchJobs(role: string, location: string): Promise<JobDat
   }
 
   try {
-    const response = await fetch(`https://jsearch.p.rapidapi.com/search?query=${encodeURIComponent(role)}&page=1&num_pages=1&country=IN&locality=${encodeURIComponent(location)}`, {
+    // Add date filter for recent jobs (last 2 hours)
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
+    
+    const response = await fetch(`https://jsearch.p.rapidapi.com/search?query=${encodeURIComponent(role)}&page=1&num_pages=1&country=IN&locality=${encodeURIComponent(location)}&date_posted=today`, {
       method: 'GET',
       headers: {
         'X-RapidAPI-Key': rapidApiKey,
@@ -175,7 +255,7 @@ async function scrapeJSearchJobs(role: string, location: string): Promise<JobDat
     const jobs: JobData[] = []
 
     if (data.data && Array.isArray(data.data)) {
-      for (const job of data.data.slice(0, 10)) { // Limit to 10 jobs per search
+      for (const job of data.data.slice(0, jobLimit)) {
         jobs.push({
           title: job.job_title || 'Unknown Title',
           company: job.employer_name || 'Unknown Company',
@@ -197,113 +277,112 @@ async function scrapeJSearchJobs(role: string, location: string): Promise<JobDat
   }
 }
 
-// Scrape jobs from Naukri.com (sample data for now)
-async function scrapeNaukriJobs(): Promise<JobData[]> {
-  // Sample Indian tech jobs that would typically be found on Naukri
-  const sampleJobs: JobData[] = [
+// Get recent Indian tech jobs (fallback data)
+async function getRecentIndianJobs(limit: number): Promise<JobData[]> {
+  const currentTime = new Date()
+  const recentJobs: JobData[] = [
     {
-      title: 'Senior Software Engineer',
-      company: 'Tata Consultancy Services',
+      title: 'Senior React Developer',
+      company: 'Zomato',
       location: 'Bangalore, India',
-      description: 'Looking for experienced software engineer with React.js and Node.js expertise. Work on cutting-edge projects for global clients.',
-      salary_range: '₹8,00,000 - ₹15,00,000',
-      job_url: 'https://naukri.com/sample-job-1',
-      platform: 'naukri',
-      requirements: ['React.js', 'Node.js', '3+ years experience', 'JavaScript'],
-      benefits: ['Health Insurance', 'Work from Home', 'Performance Bonus']
+      description: 'Looking for experienced React developer to build next-generation food delivery platform. Work with modern tech stack including React 18, TypeScript, and GraphQL.',
+      salary_range: '₹12,00,000 - ₹20,00,000',
+      job_url: 'https://zomato.com/careers/react-dev-001',
+      platform: 'company-website',
+      requirements: ['React.js', 'TypeScript', 'GraphQL', 'Node.js'],
+      benefits: ['Health Insurance', 'Remote Flexible', 'Stock Options']
     },
     {
-      title: 'Full Stack Developer',
-      company: 'Infosys Limited',
-      location: 'Hyderabad, India',
-      description: 'Full stack developer role with modern tech stack. Join our digital transformation team.',
-      salary_range: '₹6,00,000 - ₹12,00,000',
-      job_url: 'https://naukri.com/sample-job-2',
-      platform: 'naukri',
-      requirements: ['JavaScript', 'React', 'MongoDB', 'Express.js'],
-      benefits: ['Flexible Hours', 'Learning Budget', 'Health Insurance']
+      title: 'Full Stack Engineer',
+      company: 'Swiggy',
+      location: 'Hyderabad, India', 
+      description: 'Join our engineering team to build scalable microservices and modern web applications. Experience with React, Node.js, and AWS required.',
+      salary_range: '₹10,00,000 - ₹18,00,000',
+      job_url: 'https://swiggy.com/careers/fullstack-eng-002',
+      platform: 'company-website',
+      requirements: ['React', 'Node.js', 'AWS', 'MongoDB'],
+      benefits: ['Flexible Hours', 'Health Coverage', 'Learning Budget']
     },
     {
       title: 'DevOps Engineer',
-      company: 'Wipro Technologies',
-      location: 'Pune, India',
-      description: 'DevOps engineer to manage cloud infrastructure and CI/CD pipelines. AWS experience preferred.',
-      salary_range: '₹10,00,000 - ₹18,00,000',
-      job_url: 'https://naukri.com/sample-job-3',
-      platform: 'naukri',
-      requirements: ['AWS', 'Docker', 'Kubernetes', 'Jenkins'],
-      benefits: ['Remote Work', 'Performance Bonus', 'Stock Options']
+      company: 'Paytm',
+      location: 'Noida, India',
+      description: 'Manage cloud infrastructure and CI/CD pipelines for high-traffic fintech applications. Docker, Kubernetes, and AWS experience required.',
+      salary_range: '₹15,00,000 - ₹25,00,000',
+      job_url: 'https://paytm.com/careers/devops-003',
+      platform: 'company-website',
+      requirements: ['Docker', 'Kubernetes', 'AWS', 'Jenkins'],
+      benefits: ['Remote Work', 'Stock Options', 'Medical Insurance']
     },
     {
       title: 'Frontend Developer',
-      company: 'HCL Technologies',
-      location: 'Chennai, India',
-      description: 'Frontend developer with React expertise. Work on enterprise applications for Fortune 500 clients.',
-      salary_range: '₹5,00,000 - ₹9,00,000',
-      job_url: 'https://naukri.com/sample-job-4',
-      platform: 'naukri',
-      requirements: ['React', 'TypeScript', 'CSS3', 'HTML5'],
-      benefits: ['Health Insurance', 'Skill Development', 'Flexible Timing']
+      company: 'Flipkart',
+      location: 'Bangalore, India',
+      description: 'Build responsive and performant web applications for millions of users. React, Redux, and modern JavaScript expertise required.',
+      salary_range: '₹8,00,000 - ₹15,00,000',
+      job_url: 'https://flipkart.com/careers/frontend-004',
+      platform: 'company-website',
+      requirements: ['React', 'Redux', 'JavaScript', 'CSS3'],
+      benefits: ['Work from Home', 'Health Insurance', 'Skill Development']
     },
     {
-      title: 'Data Scientist',
-      company: 'Tech Mahindra',
+      title: 'Python Developer',
+      company: 'Ola Cabs',
       location: 'Mumbai, India',
-      description: 'Data scientist role to build ML models and analytics solutions. Python and R experience required.',
-      salary_range: '₹12,00,000 - ₹20,00,000',
-      job_url: 'https://naukri.com/sample-job-5',
-      platform: 'naukri',
-      requirements: ['Python', 'R', 'Machine Learning', 'SQL'],
-      benefits: ['Remote Friendly', 'Research Budget', 'Conference Attendance']
+      description: 'Develop backend services and APIs for ride-sharing platform. Python, Django, and database optimization experience preferred.',
+      salary_range: '₹9,00,000 - ₹16,00,000',
+      job_url: 'https://ola.com/careers/python-005',
+      platform: 'company-website',
+      requirements: ['Python', 'Django', 'PostgreSQL', 'Redis'],
+      benefits: ['Flexible Timing', 'Transportation', 'Health Benefits']
     }
-  ]
+  ].slice(0, limit)
 
-  return sampleJobs
+  return recentJobs
 }
 
-function calculateMatchScore(job: any, desiredRole: string): number {
+function calculateMatchScore(job: any, user: any): number {
   let score = 0
   
   // Title matching (higher weight for exact matches)
   const titleLower = job.title.toLowerCase()
-  const roleLower = desiredRole.toLowerCase()
+  const roleLower = user.desired_role.toLowerCase()
   
-  if (titleLower.includes(roleLower)) score += 0.5
-  if (titleLower === roleLower) score += 0.2 // Bonus for exact match
+  if (titleLower.includes(roleLower)) score += 0.4
+  if (titleLower === roleLower) score += 0.2
   
   // Description matching
-  const descriptionMatch = job.description.toLowerCase().includes(roleLower)
+  const descriptionMatch = job.description?.toLowerCase().includes(roleLower)
   if (descriptionMatch) score += 0.2
+  
+  // Skills matching
+  if (user.skills && user.skills.length > 0) {
+    const jobText = `${job.title} ${job.description}`.toLowerCase()
+    const skillMatches = user.skills.filter(skill => 
+      jobText.includes(skill.toLowerCase())
+    ).length
+    score += (skillMatches / user.skills.length) * 0.3
+  }
+  
+  // Location matching
+  if (user.preferred_locations && user.preferred_locations.length > 0) {
+    const locationMatch = user.preferred_locations.some(location => 
+      job.location?.toLowerCase().includes(location.toLowerCase())
+    )
+    if (locationMatch) score += 0.15
+  }
   
   // Indian tech company bonus
   const indianTechCompanies = [
-    'tcs', 'infosys', 'wipro', 'hcl', 'tech mahindra', 'mindtree', 
-    'zoho', 'freshworks', 'byju', 'paytm', 'flipkart', 'swiggy', 'zomato'
+    'zomato', 'swiggy', 'paytm', 'flipkart', 'ola', 'byju', 'unacademy',
+    'tcs', 'infosys', 'wipro', 'hcl', 'tech mahindra', 'mindtree'
   ]
-  const globalTechCompanies = ['google', 'microsoft', 'amazon', 'meta', 'apple', 'netflix']
-  
   const companyLower = job.company.toLowerCase()
   const isIndianTech = indianTechCompanies.some(company => companyLower.includes(company))
-  const isGlobalTech = globalTechCompanies.some(company => companyLower.includes(company))
-  
-  if (isGlobalTech) score += 0.15
   if (isIndianTech) score += 0.1
   
-  // Location bonus for major tech hubs
-  const majorTechHubs = ['bangalore', 'hyderabad', 'pune', 'gurgaon', 'mumbai']
-  const locationMatch = majorTechHubs.some(city => 
-    job.location.toLowerCase().includes(city)
-  )
-  if (locationMatch) score += 0.05
-  
-  // Salary range bonus (prefer jobs with disclosed salary)
+  // Salary range bonus
   if (job.salary_range && job.salary_range.includes('₹')) score += 0.05
   
-  // Tech skills matching
-  const techSkills = ['react', 'node', 'javascript', 'python', 'java', 'aws', 'docker']
-  const combinedText = `${job.title} ${job.description}`.toLowerCase()
-  const skillMatches = techSkills.filter(skill => combinedText.includes(skill)).length
-  score += (skillMatches / techSkills.length) * 0.1
-  
-  return Math.min(score, 1.0) // Cap at 1.0
+  return Math.min(score, 1.0)
 }

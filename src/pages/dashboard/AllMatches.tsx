@@ -12,7 +12,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { toast } from "@/hooks/use-toast";
 import {
   Target, Eye, MoreVertical, ExternalLink, Copy, Filter,
-  CheckCircle2, Clock, AlertCircle, Search, Send
+  CheckCircle2, Clock, AlertCircle, Search, Send, RefreshCw
 } from "lucide-react";
 
 interface JobMatch {
@@ -25,12 +25,14 @@ interface JobMatch {
   matched_at: string;
   job_url: string;
   description?: string;
+  salary_range?: string;
 }
 
 const AllMatches = () => {
   const user = useUser();
   const [jobMatches, setJobMatches] = useState<JobMatch[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [selectedJobs, setSelectedJobs] = useState<Set<string>>(new Set());
   const [applying, setApplying] = useState(false);
   
@@ -48,7 +50,6 @@ const AllMatches = () => {
     try {
       setLoading(true);
       
-      // Try to fetch real job matches from Supabase first
       if (user?.id) {
         const { data: jobMatches, error } = await supabase
           .from('user_job_matches')
@@ -64,14 +65,14 @@ const AllMatches = () => {
               platform,
               job_url,
               requirements,
-              benefits
+              benefits,
+              scraped_at
             )
           `)
           .eq('user_id', user.id)
           .order('matched_at', { ascending: false });
 
         if (!error && jobMatches && jobMatches.length > 0) {
-          // Transform Supabase data to JobMatch format
           const transformedMatches: JobMatch[] = jobMatches.map((match: any) => ({
             id: match.id,
             title: match.scraped_jobs?.title || 'Unknown Title',
@@ -79,9 +80,10 @@ const AllMatches = () => {
             location: match.scraped_jobs?.location || 'Remote',
             status: (match.status as JobMatch["status"]) || 'pending',
             platform: match.scraped_jobs?.platform || 'indeed',
-            matched_at: match.matched_at || new Date().toISOString(),
+            matched_at: match.matched_at || new Date().toISOString(),  
             job_url: match.scraped_jobs?.job_url || '#',
-            description: match.scraped_jobs?.description || 'No description available'
+            description: match.scraped_jobs?.description || 'No description available',
+            salary_range: match.scraped_jobs?.salary_range
           }));
           
           setJobMatches(transformedMatches);
@@ -89,70 +91,8 @@ const AllMatches = () => {
         }
       }
 
-      // If no real matches found, show empty state
       setJobMatches([]);
       
-      // Optionally keep some mock data for demonstration (remove this in production)
-      const mockIndianJobs: JobMatch[] = [
-        {
-          id: "1",
-          title: "Senior Software Engineer",
-          company: "Tata Consultancy Services",
-          location: "Bangalore, India",
-          status: "pending",
-          platform: "naukri",
-          matched_at: new Date().toISOString(),
-          job_url: "https://naukri.com/jobs/12345",
-          description: "Looking for experienced software engineer with React.js and Node.js expertise. Work on cutting-edge projects for global clients."
-        },
-        {
-          id: "2", 
-          title: "Full Stack Developer",
-          company: "Infosys Limited",
-          location: "Hyderabad, India",
-          status: "applied",
-          platform: "linkedin",
-          matched_at: new Date(Date.now() - 86400000).toISOString(),
-          job_url: "https://linkedin.com/jobs/67890",
-          description: "Full stack developer role with modern tech stack. Join our digital transformation team."
-        },
-        {
-          id: "3",
-          title: "React Developer",
-          company: "Wipro Technologies",
-          location: "Pune, India", 
-          status: "pending",
-          platform: "indeed",
-          matched_at: new Date(Date.now() - 172800000).toISOString(),
-          job_url: "https://indeed.com/jobs/54321",
-          description: "Frontend developer with React expertise. Work on enterprise applications for Fortune 500 clients."
-        },
-        {
-          id: "4",
-          title: "DevOps Engineer",
-          company: "HCL Technologies",
-          location: "Chennai, India",
-          status: "pending", 
-          platform: "naukri",
-          matched_at: new Date(Date.now() - 259200000).toISOString(),
-          job_url: "https://naukri.com/jobs/98765",
-          description: "DevOps engineer to manage cloud infrastructure and CI/CD pipelines. AWS experience preferred."
-        },
-        {
-          id: "5",
-          title: "Data Scientist",
-          company: "Tech Mahindra",
-          location: "Mumbai, India",
-          status: "interview",
-          platform: "linkedin",
-          matched_at: new Date(Date.now() - 345600000).toISOString(),
-          job_url: "https://linkedin.com/jobs/11111",
-          description: "Data scientist role to build ML models and analytics solutions. Python and R experience required."
-        }
-      ];
-      
-      // Comment out mock data to show real empty state
-      // setJobMatches(mockIndianJobs);
     } catch (error) {
       console.error("Error fetching job matches:", error);
       toast({
@@ -162,6 +102,48 @@ const AllMatches = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const refreshJobs = async () => {
+    if (!user?.id) return;
+    
+    try {
+      setRefreshing(true);
+      
+      const { data, error } = await supabase.functions.invoke('scrape-jobs', {
+        body: { 
+          user_id: user.id,
+          fetch_recent: true,
+          limit: 10
+        }
+      });
+
+      if (error) {
+        console.error('Error refreshing jobs:', error);
+        toast({
+          title: "Job Refresh Started",
+          description: "We're searching for new jobs. Check back in a moment!",
+        });
+      } else {
+        toast({
+          title: "🔄 Jobs Refreshed!",
+          description: "Found new job matches. Refreshing the list now.",
+        });
+        
+        // Refresh the matches list after a short delay
+        setTimeout(() => {
+          fetchJobMatches();
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Error refreshing jobs:', error);
+      toast({
+        title: "Refresh Started",
+        description: "We're looking for new job matches in the background.",
+      });
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -256,7 +238,6 @@ const AllMatches = () => {
           description: `Successfully applied to ${selectedJobs.size} jobs.`,
         });
         
-        // Update status of applied jobs
         setJobMatches(prev => prev.map(job => 
           selectedJobs.has(job.id) 
             ? { ...job, status: "applied" as const }
@@ -286,7 +267,6 @@ const AllMatches = () => {
     });
   };
 
-  // Filter jobs based on current filters
   const filteredJobs = jobMatches.filter(job => {
     const statusMatch = statusFilter === "all" || job.status === statusFilter;
     const platformMatch = platformFilter === "all" || job.platform.toLowerCase().includes(platformFilter.toLowerCase());
@@ -326,16 +306,36 @@ const AllMatches = () => {
       {/* Header Card */}
       <Card className="shadow-card border-0 bg-gradient-hero">
         <CardContent className="p-6">
-          <div className="flex items-center space-x-3">
-            <div className="p-3 rounded-full bg-primary/10">
-              <Target className="h-6 w-6 text-primary" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="p-3 rounded-full bg-primary/10">
+                <Target className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold">All Job Matches</h1>
+                <p className="text-muted-foreground">
+                  🎯 Showing recent job matches based on your profile
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold">All Job Matches</h1>
-              <p className="text-muted-foreground">
-                🎯 Showing job matches based on your resume and preferences
-              </p>
-            </div>
+            <Button
+              onClick={refreshJobs}
+              disabled={refreshing}
+              variant="outline"
+              className="bg-white/10 border-white/20 hover:bg-white/20"
+            >
+              {refreshing ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Searching...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Find New Jobs
+                </>
+              )}
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -377,8 +377,7 @@ const AllMatches = () => {
                    <SelectItem value="indeed">Indeed</SelectItem>
                    <SelectItem value="linkedin">LinkedIn</SelectItem>
                    <SelectItem value="naukri">Naukri</SelectItem>
-                   <SelectItem value="angellist">AngelList</SelectItem>
-                   <SelectItem value="glassdoor">Glassdoor</SelectItem>
+                   <SelectItem value="company-website">Company Website</SelectItem>
                  </SelectContent>
               </Select>
             </div>
@@ -444,6 +443,7 @@ const AllMatches = () => {
                   <TableHead>Job Title</TableHead>
                   <TableHead>Company</TableHead>
                   <TableHead>Location</TableHead>
+                  <TableHead>Salary</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Platform</TableHead>
                   <TableHead>Matched At</TableHead>
@@ -483,6 +483,9 @@ const AllMatches = () => {
                     </TableCell>
                     <TableCell className="font-medium">{job.company}</TableCell>
                     <TableCell className="text-muted-foreground">{job.location}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {job.salary_range || 'Not disclosed'}
+                    </TableCell>
                     <TableCell>{getStatusBadge(job.status)}</TableCell>
                     <TableCell>
                       <Badge variant="outline">{job.platform}</Badge>
@@ -525,9 +528,22 @@ const AllMatches = () => {
             <div className="text-center py-12">
               <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-medium mb-2">No matches found</h3>
-              <p className="text-muted-foreground">
-                Try adjusting your filters or check back later for new job matches.
+              <p className="text-muted-foreground mb-4">
+                Complete your profile setup to get personalized job matches.
               </p>
+              <Button onClick={refreshJobs} disabled={refreshing}>
+                {refreshing ? (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    Searching...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Find Jobs
+                  </>
+                )}
+              </Button>
             </div>
           )}
         </CardContent>
