@@ -143,14 +143,18 @@ serve(async (req) => {
       }
     }
 
-    // Add some sample recent Indian jobs if not enough found
+    // Only add sample LinkedIn/Naukri jobs if not enough found and API key is missing
     if (fetch_recent && allJobs.length < limit) {
-      try {
-        const recentJobs = await getRecentIndianJobs(limit - allJobs.length)
-        allJobs.push(...recentJobs)
-        console.log(`Added ${recentJobs.length} sample jobs`)
-      } catch (error) {
-        console.error('Error getting recent jobs:', error)
+      const rapidApiKey = Deno.env.get('RAPIDAPI_KEY')
+      if (!rapidApiKey) {
+        console.log('Adding sample LinkedIn/Naukri jobs since RAPIDAPI_KEY is not configured')
+        try {
+          const recentJobs = await getRecentLinkedInNaukriJobs(limit - allJobs.length)
+          allJobs.push(...recentJobs)
+          console.log(`Added ${recentJobs.length} sample LinkedIn/Naukri jobs`)
+        } catch (error) {
+          console.error('Error getting recent LinkedIn/Naukri jobs:', error)
+        }
       }
     }
 
@@ -394,63 +398,63 @@ async function scrapeLinkedInNaukriJobs(role: string, location: string, jobLimit
   }
 }
 
-// Enhanced sample jobs with more diverse roles including Product Manager
-async function getRecentIndianJobs(limit: number): Promise<JobData[]> {
+// Sample LinkedIn and Naukri jobs for when API key is not available
+async function getRecentLinkedInNaukriJobs(limit: number): Promise<JobData[]> {
   const recentJobs: JobData[] = [
     {
       title: 'Product Manager',
-      company: 'Flipkart',
+      company: 'TCS',
       location: 'Bangalore, India',
-      description: 'Lead product strategy and roadmap for e-commerce platform. Work with engineering, design, and business teams to deliver customer-centric solutions. Experience with product analytics and user research required.',
-      salary_range: '₹15,00,000 - ₹25,00,000',
-      job_url: 'https://flipkart.com/careers/product-manager-001',
-      platform: 'company-website',
-      requirements: ['Product Management', 'Analytics', 'Strategy', 'Leadership'],
-      benefits: ['Health Insurance', 'Stock Options', 'Remote Flexible']
+      description: 'Lead product strategy and roadmap for enterprise solutions. Work with engineering, design, and business teams to deliver customer-centric products.',
+      salary_range: '₹12,00,000 - ₹20,00,000',
+      job_url: 'https://linkedin.com/jobs/view/product-manager-001',
+      platform: 'linkedin',
+      requirements: ['Product Management', 'Analytics', 'Strategy'],
+      benefits: ['Health Insurance', 'Remote Work']
     },
     {
       title: 'Senior Product Manager',
-      company: 'Zomato',
-      location: 'Gurgaon, India',
-      description: 'Drive product innovation for food delivery and restaurant discovery. Lead cross-functional teams and define product vision. Strong background in consumer internet products required.',
-      salary_range: '₹18,00,000 - ₹30,00,000',
-      job_url: 'https://zomato.com/careers/senior-pm-002',
-      platform: 'company-website',
-      requirements: ['Product Strategy', 'Consumer Internet', 'Team Leadership', 'Data Analysis'],
-      benefits: ['Stock Options', 'Health Coverage', 'Learning Budget']
+      company: 'Infosys',
+      location: 'Hyderabad, India',
+      description: 'Drive product innovation for digital transformation solutions. Experience in enterprise software products required.',
+      salary_range: '₹15,00,000 - ₹25,00,000',
+      job_url: 'https://naukri.com/job-listings/senior-pm-002',
+      platform: 'naukri',
+      requirements: ['Product Strategy', 'Enterprise Software', 'Leadership'],
+      benefits: ['Health Coverage', 'Learning Budget']
     },
     {
       title: 'Senior React Developer',
-      company: 'Paytm',
-      location: 'Noida, India',
-      description: 'Build scalable web applications using React and modern JavaScript. Work on high-traffic fintech applications serving millions of users.',
-      salary_range: '₹12,00,000 - ₹20,00,000',
-      job_url: 'https://paytm.com/careers/react-dev-003',
-      platform: 'company-website',
-      requirements: ['React.js', 'JavaScript', 'TypeScript', 'Redux'],
-      benefits: ['Health Insurance', 'Remote Work', 'Stock Options']
+      company: 'Wipro',
+      location: 'Pune, India',
+      description: 'Build scalable web applications using React and modern JavaScript. Work on high-traffic applications serving enterprise clients.',
+      salary_range: '₹10,00,000 - ₹16,00,000',
+      job_url: 'https://linkedin.com/jobs/view/react-dev-003',
+      platform: 'linkedin',
+      requirements: ['React.js', 'JavaScript', 'TypeScript'],
+      benefits: ['Health Insurance', 'Flexible Hours']
     },
     {
       title: 'Python Developer',
-      company: 'Swiggy',
-      location: 'Hyderabad, India',
-      description: 'Develop backend services for food delivery platform using Python and Django. Work with microservices architecture and cloud technologies.',
-      salary_range: '₹10,00,000 - ₹18,00,000',
-      job_url: 'https://swiggy.com/careers/python-dev-004',
-      platform: 'company-website',
-      requirements: ['Python', 'Django', 'AWS', 'Microservices'],
-      benefits: ['Flexible Hours', 'Health Coverage', 'Transportation']
+      company: 'HCL Technologies',
+      location: 'Chennai, India',
+      description: 'Develop backend services using Python and Django. Work with cloud technologies and microservices architecture.',
+      salary_range: '₹8,00,000 - ₹14,00,000',
+      job_url: 'https://naukri.com/job-listings/python-dev-004',
+      platform: 'naukri',
+      requirements: ['Python', 'Django', 'AWS'],
+      benefits: ['Health Coverage', 'Transportation']
     },
     {
       title: 'Business Analyst',
-      company: 'Ola Cabs',
-      location: 'Bangalore, India',
-      description: 'Analyze business requirements and translate them into technical specifications. Work with product and engineering teams to improve ride-sharing platform.',
-      salary_range: '₹8,00,000 - ₹15,00,000',
-      job_url: 'https://ola.com/careers/ba-005',
-      platform: 'company-website',
-      requirements: ['Business Analysis', 'Requirements Gathering', 'SQL', 'Analytics'],
-      benefits: ['Health Insurance', 'Flexible Timing', 'Skill Development']
+      company: 'Tech Mahindra',
+      location: 'Mumbai, India',
+      description: 'Analyze business requirements and translate them into technical specifications. Work with product and engineering teams.',
+      salary_range: '₹7,00,000 - ₹12,00,000',
+      job_url: 'https://linkedin.com/jobs/view/ba-005',
+      platform: 'linkedin',
+      requirements: ['Business Analysis', 'Requirements Gathering', 'SQL'],
+      benefits: ['Health Insurance', 'Skill Development']
     }
   ].slice(0, limit)
 
@@ -496,14 +500,10 @@ function calculateMatchScore(job: any, user: any): number {
     if (locationMatch) score += 0.1
   }
   
-  // Company bonus (Indian companies get slight preference)
-  const indianTechCompanies = [
-    'zomato', 'swiggy', 'paytm', 'flipkart', 'ola', 'byju', 'unacademy',
-    'tcs', 'infosys', 'wipro', 'hcl', 'tech mahindra', 'mindtree'
-  ]
-  const companyLower = job.company.toLowerCase()
-  const isIndianTech = indianTechCompanies.some(company => companyLower.includes(company))
-  if (isIndianTech) score += 0.05
+  // Platform bonus for LinkedIn and Naukri
+  if (job.platform === 'linkedin' || job.platform === 'naukri') {
+    score += 0.1
+  }
   
   // Salary range bonus
   if (job.salary_range && job.salary_range.includes('₹')) score += 0.05
