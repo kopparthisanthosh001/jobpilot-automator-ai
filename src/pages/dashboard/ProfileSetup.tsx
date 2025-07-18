@@ -477,7 +477,7 @@ const ProfileSetup = () => {
                           type="file"
                           accept=".pdf"
                           onChange={handleFileSelect}
-                          className="max-w-xs mx-auto"
+                          className="max-w-xs mx-auto border-2 border-primary border-dashed bg-primary/5 hover:bg-primary/10 hover:border-primary/80 transition-all duration-200 p-4 rounded-lg cursor-pointer focus:ring-2 focus:ring-primary/20"
                         />
                       </div>
                     </div>
