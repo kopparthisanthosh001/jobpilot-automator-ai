@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,11 +13,22 @@ import {
   Clock, 
   CheckCircle,
   Star,
-  ArrowRight
+  ArrowRight,
+  LogIn,
+  UserPlus
 } from "lucide-react";
+import { useAuthSession } from "@/hooks/useAuthSession";
 import heroImage from "@/assets/hero-dashboard.jpg";
 
 const Landing = () => {
+  const { isAuthenticated, clearSessionAndSignUp } = useAuthSession();
+
+  const handleStartForFree = () => {
+    if (isAuthenticated) {
+      clearSessionAndSignUp();
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -34,14 +46,41 @@ const Landing = () => {
               <a href="#home" className="text-foreground hover:text-primary transition-colors">Home</a>
               <a href="#how-it-works" className="text-foreground hover:text-primary transition-colors">How it Works</a>
               <a href="#pricing" className="text-foreground hover:text-primary transition-colors">Pricing</a>
-              <Link to="/auth" className="text-foreground hover:text-primary transition-colors">Login</Link>
             </nav>
             
-            <Link to="/auth">
-              <Button className="bg-gradient-primary hover:opacity-90 shadow-soft">
-                Sign Up <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
+            <div className="flex items-center space-x-2">
+              {isAuthenticated ? (
+                <Link to="/dashboard">
+                  <Button variant="outline" className="flex items-center space-x-2">
+                    <span>Dashboard</span>
+                  </Button>
+                </Link>
+              ) : (
+                <Link to="/auth">
+                  <Button variant="outline" className="flex items-center space-x-2">
+                    <LogIn className="h-4 w-4" />
+                    <span>Login</span>
+                  </Button>
+                </Link>
+              )}
+              
+              {isAuthenticated ? (
+                <Button 
+                  onClick={handleStartForFree}
+                  className="bg-gradient-primary hover:opacity-90 shadow-soft flex items-center space-x-2"
+                >
+                  <UserPlus className="h-4 w-4" />
+                  <span>New Account</span>
+                </Button>
+              ) : (
+                <Link to="/auth">
+                  <Button className="bg-gradient-primary hover:opacity-90 shadow-soft flex items-center space-x-2">
+                    <UserPlus className="h-4 w-4" />
+                    <span>Start Free</span>
+                  </Button>
+                </Link>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -71,11 +110,21 @@ const Landing = () => {
               </div>
               
               <div className="flex flex-col sm:flex-row gap-4">
-                <Link to="/auth">
-                  <Button size="lg" className="bg-gradient-primary hover:opacity-90 shadow-soft text-lg px-8">
-                    Get Started for Free
+                {isAuthenticated ? (
+                  <Button 
+                    size="lg" 
+                    onClick={handleStartForFree}
+                    className="bg-gradient-primary hover:opacity-90 shadow-soft text-lg px-8"
+                  >
+                    Create New Account
                   </Button>
-                </Link>
+                ) : (
+                  <Link to="/auth">
+                    <Button size="lg" className="bg-gradient-primary hover:opacity-90 shadow-soft text-lg px-8">
+                      Get Started for Free
+                    </Button>
+                  </Link>
+                )}
                 <Button variant="outline" size="lg" className="text-lg px-8">
                   Watch Demo
                 </Button>

@@ -27,8 +27,9 @@ const AuthWrapper = () => {
   const location = useLocation();
 
   useEffect(() => {
-    // If user is authenticated and trying to access auth page, redirect to dashboard
-    if (user && location.pathname === '/auth') {
+    // Only redirect to dashboard if user is authenticated and on landing page
+    // Allow access to auth page even if user is authenticated (for new signups)
+    if (user && location.pathname === '/') {
       navigate('/dashboard', { replace: true });
     }
   }, [user, location.pathname, navigate]);
@@ -51,7 +52,6 @@ const AuthWrapper = () => {
         <Route path="resume-analysis" element={<ATSOptimizer />} />
         <Route path="analytics" element={<ATSOptimizer />} />
       </Route>
-      {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Bot, ArrowLeft, Mail, Lock, User, Chrome } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuthSession } from "@/hooks/useAuthSession";
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -19,6 +20,7 @@ const Auth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const supabase = useSupabaseClient();
+  const { isAuthenticated } = useAuthSession();
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -155,7 +157,10 @@ const Auth = () => {
 
           <div className="space-y-6">
             <h2 className="text-3xl font-bold text-foreground">
-              Join thousands of professionals who automated their job search
+              {isAuthenticated ? 
+                "Create a new account or login to existing one" : 
+                "Join thousands of professionals who automated their job search"
+              }
             </h2>
             
             <div className="space-y-4 text-left max-w-md mx-auto">
