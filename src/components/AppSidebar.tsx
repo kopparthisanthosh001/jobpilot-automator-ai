@@ -30,10 +30,8 @@ const menuItems = [
   { title: "Home", url: "/dashboard", icon: Home },
   { title: "Profile Setup", url: "/dashboard/profile-setup", icon: User },
   { title: "Job Matches", url: "/dashboard/matches", icon: Target },
-  { title: "Job Discovery", url: "/dashboard/scrape", icon: Search },
   { title: "ATS Optimizer", url: "/dashboard/ats-optimizer", icon: Zap },
   { title: "Resume Analysis", url: "/dashboard/resume-analysis", icon: FileText },
-  { title: "Market Insights", url: "/dashboard/analytics", icon: BarChart3 },
 ];
 
 export function AppSidebar() {
