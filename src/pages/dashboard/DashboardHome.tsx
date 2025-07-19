@@ -1,3 +1,4 @@
+
 import { useUser } from "@supabase/auth-helpers-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -283,7 +284,7 @@ const DashboardHome = () => {
                   <span>Resume & Preferences</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent>
                 <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
                   <div className="flex items-center space-x-3">
                     {resumeUploaded ? (
@@ -307,7 +308,7 @@ const DashboardHome = () => {
                   </Link>
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
+                <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg mt-4">
                   <div className="flex items-center space-x-3">
                     <Zap className="h-5 w-5 text-primary" />
                     <div>
@@ -379,30 +380,36 @@ const DashboardHome = () => {
             </Card>
           </div>
 
-          {/* Right Column - Resume Optimization & ATS Analysis */}
+          {/* Right Column - HIGHLIGHTED Resume Optimization & Other Features */}
           <div className="space-y-6">
-            {/* Resume Optimization Panel */}
-            <ResumeOptimizationPanel
-              currentScore={73}
-              potentialScore={89}
-              suggestions={{
-                addSkills: ["Machine Learning", "Data Science", "Python"],
-                addKeywords: ["Product Analytics", "User Research", "A/B Testing"],
-                improveSections: ["Add quantified achievements", "Include relevant certifications", "Optimize job titles"]
-              }}
-              onOptimizeResume={() => {
-                toast({
-                  title: "Resume Optimization",
-                  description: "Redirecting to resume optimizer...",
-                });
-              }}
-              onUpdateProfile={() => {
-                toast({
-                  title: "Profile Update",
-                  description: "Redirecting to profile settings...",
-                });
-              }}
-            />
+            {/* HIGHLIGHTED Resume Optimization Panel */}
+            <div className="relative">
+              {/* Glow Effect */}
+              <div className="absolute -inset-1 bg-gradient-to-r from-primary/50 to-secondary/50 rounded-lg blur opacity-75"></div>
+              <div className="relative">
+                <ResumeOptimizationPanel
+                  currentScore={73}
+                  potentialScore={89}
+                  suggestions={{
+                    addSkills: ["Machine Learning", "Data Science", "Python"],
+                    addKeywords: ["Product Analytics", "User Research", "A/B Testing"],
+                    improveSections: ["Add quantified achievements", "Include relevant certifications", "Optimize job titles"]
+                  }}
+                  onOptimizeResume={() => {
+                    toast({
+                      title: "Resume Optimization",
+                      description: "Redirecting to resume optimizer...",
+                    });
+                  }}
+                  onUpdateProfile={() => {
+                    toast({
+                      title: "Profile Update",
+                      description: "Redirecting to profile settings...",
+                    });
+                  }}
+                />
+              </div>
+            </div>
 
             {/* Manual Job Upload */}
             <Card className="shadow-card border-0">
