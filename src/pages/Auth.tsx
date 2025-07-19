@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useSupabaseClient } from "@supabase/auth-helpers-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,10 +18,17 @@ const Auth = () => {
     password: '',
     fullName: ''
   });
+  const [searchParams] = useSearchParams();
+  const defaultTab = searchParams.get('mode') === 'login' ? 'login' : 'signup';
+  
   const navigate = useNavigate();
   const { toast } = useToast();
   const supabase = useSupabaseClient();
   const { isAuthenticated } = useAuthSession();
+
+  useEffect(() => {
+    console.log("Auth page - isAuthenticated:", isAuthenticated);
+  }, [isAuthenticated]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -31,6 +39,8 @@ const Auth = () => {
     setIsLoading(true);
     
     try {
+      console.log("Attempting signup for:", formData.email);
+      
       const { data, error } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -43,6 +53,7 @@ const Auth = () => {
       });
 
       if (error) {
+        console.error("Signup error:", error);
         toast({
           title: "Sign Up Error",
           description: error.message,
@@ -50,6 +61,8 @@ const Auth = () => {
         });
         return;
       }
+
+      console.log("Signup data:", data);
 
       if (data.user && !data.session) {
         toast({
@@ -64,6 +77,7 @@ const Auth = () => {
         navigate("/dashboard");
       }
     } catch (error) {
+      console.error("Unexpected signup error:", error);
       toast({
         title: "Error",
         description: "An unexpected error occurred. Please try again.",
@@ -79,12 +93,15 @@ const Auth = () => {
     setIsLoading(true);
     
     try {
+      console.log("Attempting login for:", formData.email);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email: formData.email,
         password: formData.password,
       });
 
       if (error) {
+        console.error("Login error:", error);
         toast({
           title: "Login Error",
           description: error.message,
@@ -92,6 +109,8 @@ const Auth = () => {
         });
         return;
       }
+
+      console.log("Login data:", data);
 
       if (data.session) {
         toast({
@@ -101,6 +120,7 @@ const Auth = () => {
         navigate("/dashboard");
       }
     } catch (error) {
+      console.error("Unexpected login error:", error);
       toast({
         title: "Error",
         description: "An unexpected error occurred. Please try again.",
@@ -113,6 +133,8 @@ const Auth = () => {
 
   const handleGoogleAuth = async () => {
     try {
+      console.log("Attempting Google auth");
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -121,6 +143,7 @@ const Auth = () => {
       });
 
       if (error) {
+        console.error("Google auth error:", error);
         toast({
           title: "Authentication Error",
           description: error.message,
@@ -128,6 +151,7 @@ const Auth = () => {
         });
       }
     } catch (error) {
+      console.error("Unexpected Google auth error:", error);
       toast({
         title: "Error",
         description: "Failed to authenticate with Google. Please try again.",
@@ -207,11 +231,13 @@ const Auth = () => {
                   Jobpilot.ai
                 </span>
               </div>
-              <CardTitle className="text-2xl">Get Started</CardTitle>
+              <CardTitle className="text-2xl">
+                {isAuthenticated ? "Create New Account or Login" : "Get Started"}
+              </CardTitle>
             </CardHeader>
             
             <CardContent>
-              <Tabs defaultValue="signup" className="space-y-6">
+              <Tabs defaultValue={defaultTab} className="space-y-6">
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="signup">Sign Up</TabsTrigger>
                   <TabsTrigger value="login">Login</TabsTrigger>

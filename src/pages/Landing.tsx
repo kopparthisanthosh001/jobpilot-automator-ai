@@ -1,38 +1,17 @@
-
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Link } from "react-router-dom";
-import { 
-  Bot, 
-  Upload, 
-  Settings, 
-  Zap, 
-  Shield, 
-  BarChart3, 
-  Clock, 
-  CheckCircle,
-  Star,
-  ArrowRight,
-  LogIn,
-  UserPlus
-} from "lucide-react";
+import { Bot, Zap, Target, Shield, ArrowRight, CheckCircle, Users, TrendingUp, Clock } from "lucide-react";
 import { useAuthSession } from "@/hooks/useAuthSession";
-import heroImage from "@/assets/hero-dashboard.jpg";
 
 const Landing = () => {
   const { isAuthenticated, clearSessionAndSignUp } = useAuthSession();
 
-  const handleStartForFree = () => {
-    if (isAuthenticated) {
-      clearSessionAndSignUp();
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-hero">
       {/* Header */}
-      <header className="border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-50">
+      <header className="border-b border-border/5 bg-background/80 backdrop-blur-sm">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
@@ -42,43 +21,30 @@ const Landing = () => {
               </span>
             </div>
             
-            <nav className="hidden md:flex items-center space-x-8">
-              <a href="#home" className="text-foreground hover:text-primary transition-colors">Home</a>
-              <a href="#how-it-works" className="text-foreground hover:text-primary transition-colors">How it Works</a>
-              <a href="#pricing" className="text-foreground hover:text-primary transition-colors">Pricing</a>
-            </nav>
-            
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-4">
               {isAuthenticated ? (
-                <Link to="/dashboard">
-                  <Button variant="outline" className="flex items-center space-x-2">
-                    <span>Dashboard</span>
+                <>
+                  <Link to="/dashboard">
+                    <Button variant="ghost">Dashboard</Button>
+                  </Link>
+                  <Button 
+                    onClick={clearSessionAndSignUp}
+                    variant="outline"
+                  >
+                    Sign Up New Account
                   </Button>
-                </Link>
+                </>
               ) : (
-                <Link to="/auth">
-                  <Button variant="outline" className="flex items-center space-x-2">
-                    <LogIn className="h-4 w-4" />
-                    <span>Login</span>
-                  </Button>
-                </Link>
-              )}
-              
-              {isAuthenticated ? (
-                <Button 
-                  onClick={handleStartForFree}
-                  className="bg-gradient-primary hover:opacity-90 shadow-soft flex items-center space-x-2"
-                >
-                  <UserPlus className="h-4 w-4" />
-                  <span>New Account</span>
-                </Button>
-              ) : (
-                <Link to="/auth">
-                  <Button className="bg-gradient-primary hover:opacity-90 shadow-soft flex items-center space-x-2">
-                    <UserPlus className="h-4 w-4" />
-                    <span>Start Free</span>
-                  </Button>
-                </Link>
+                <>
+                  <Link to="/auth">
+                    <Button variant="ghost">Login</Button>
+                  </Link>
+                  <Link to="/auth">
+                    <Button className="bg-gradient-primary hover:opacity-90 shadow-soft">
+                      Start Free
+                    </Button>
+                  </Link>
+                </>
               )}
             </div>
           </div>
@@ -86,118 +52,195 @@ const Landing = () => {
       </header>
 
       {/* Hero Section */}
-      <section id="home" className="py-20 bg-gradient-hero">
-        <div className="container mx-auto px-6">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-8">
-              <Badge variant="outline" className="w-fit">
-                <Zap className="h-4 w-4 mr-2" />
-                Automated Job Applications
-              </Badge>
-              
-              <div className="space-y-4">
-                <h1 className="text-5xl md:text-6xl font-bold leading-tight">
-                  Let Your Resume Work{" "}
-                  <span className="bg-gradient-primary bg-clip-text text-transparent">
-                    While You Sleep
-                  </span>
-                </h1>
-                
-                <p className="text-xl text-muted-foreground max-w-lg">
-                  Upload your resume once. We'll find relevant jobs and auto-apply every 2 hours.
-                  Perfect for Product, Strategy, and Business roles in India.
-                </p>
-              </div>
-              
-              <div className="flex flex-col sm:flex-row gap-4">
-                {isAuthenticated ? (
-                  <Button 
-                    size="lg" 
-                    onClick={handleStartForFree}
-                    className="bg-gradient-primary hover:opacity-90 shadow-soft text-lg px-8"
-                  >
-                    Create New Account
+      <section className="container mx-auto px-6 py-20">
+        <div className="text-center space-y-8 max-w-4xl mx-auto">
+          <Badge variant="secondary" className="text-sm px-4 py-2">
+            🚀 Automate Your Job Search with AI
+          </Badge>
+          
+          <h1 className="text-5xl md:text-7xl font-bold leading-tight">
+            Get Your Dream Job on{" "}
+            <span className="bg-gradient-primary bg-clip-text text-transparent">
+              Autopilot
+            </span>
+          </h1>
+          
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+            Upload your resume once. Set your preferences. Let our AI apply to hundreds of relevant jobs every day while you sleep.
+          </p>
+          
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-8">
+            {isAuthenticated ? (
+              <>
+                <Link to="/dashboard">
+                  <Button size="lg" className="bg-gradient-primary hover:opacity-90 shadow-soft text-lg px-8 py-6">
+                    Go to Dashboard
+                    <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
-                ) : (
-                  <Link to="/auth">
-                    <Button size="lg" className="bg-gradient-primary hover:opacity-90 shadow-soft text-lg px-8">
-                      Get Started for Free
-                    </Button>
-                  </Link>
-                )}
-                <Button variant="outline" size="lg" className="text-lg px-8">
-                  Watch Demo
+                </Link>
+                <Button 
+                  size="lg" 
+                  variant="outline" 
+                  onClick={clearSessionAndSignUp}
+                  className="text-lg px-8 py-6"
+                >
+                  Create New Account
                 </Button>
-              </div>
-              
-              <div className="flex items-center space-x-6 text-sm text-muted-foreground">
-                <div className="flex items-center">
-                  <CheckCircle className="h-4 w-4 mr-2 text-success" />
-                  No credit card required
-                </div>
-                <div className="flex items-center">
-                  <CheckCircle className="h-4 w-4 mr-2 text-success" />
-                  100% secure & private
-                </div>
-              </div>
+              </>
+            ) : (
+              <>
+                <Link to="/auth">
+                  <Button size="lg" className="bg-gradient-primary hover:opacity-90 shadow-soft text-lg px-8 py-6">
+                    Start Free Trial
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </Link>
+                <Link to="/auth">
+                  <Button size="lg" variant="outline" className="text-lg px-8 py-6">
+                    Login
+                  </Button>
+                </Link>
+              </>
+            )}
+          </div>
+          
+          <div className="flex items-center justify-center space-x-6 text-sm text-muted-foreground pt-4">
+            <div className="flex items-center space-x-1">
+              <CheckCircle className="h-4 w-4 text-primary" />
+              <span>Free 7-day trial</span>
             </div>
-            
-            <div className="relative">
-              <div className="w-full h-96 rounded-2xl shadow-glow overflow-hidden">
-                <img 
-                  src={heroImage} 
-                  alt="Job Automation Dashboard showing AI-powered job matching and application workflows" 
-                  className="w-full h-full object-cover"
-                />
-              </div>
+            <div className="flex items-center space-x-1">
+              <CheckCircle className="h-4 w-4 text-primary" />
+              <span>No credit card required</span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <CheckCircle className="h-4 w-4 text-primary" />
+              <span>Cancel anytime</span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* How It Works */}
-      <section id="how-it-works" className="py-20">
-        <div className="container mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">How Jobpilot.ai Works</h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Get started in 3 simple steps and let automation handle your job applications
-            </p>
+      {/* Features Section */}
+      <section className="container mx-auto px-6 py-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {/* Feature 1 */}
+          <Card className="shadow-glow border-0 bg-background/95 backdrop-blur">
+            <CardContent className="space-y-4">
+              <div className="flex items-center space-x-3">
+                <Zap className="h-6 w-6 text-primary" />
+                <h3 className="text-lg font-semibold">AI-Powered Applications</h3>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Our AI automatically fills out job applications with optimized details from your resume.
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Feature 2 */}
+          <Card className="shadow-glow border-0 bg-background/95 backdrop-blur">
+            <CardContent className="space-y-4">
+              <div className="flex items-center space-x-3">
+                <Target className="h-6 w-6 text-secondary" />
+                <h3 className="text-lg font-semibold">Targeted Job Matching</h3>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                We match you with jobs that fit your skills and preferences, increasing your chances of success.
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Feature 3 */}
+          <Card className="shadow-glow border-0 bg-background/95 backdrop-blur">
+            <CardContent className="space-y-4">
+              <div className="flex items-center space-x-3">
+                <Shield className="h-6 w-6 text-accent" />
+                <h3 className="text-lg font-semibold">ATS Optimization</h3>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                We ensure your resume is ATS-friendly, so you never get filtered out by automated systems.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
+      {/* Stats Section */}
+      <section className="bg-secondary/10 py-16">
+        <div className="container mx-auto px-6 text-center">
+          <h2 className="text-3xl font-bold mb-8">Jobpilot.ai in Numbers</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {/* Stat 1 */}
+            <div>
+              <span className="text-5xl font-bold text-primary">500+</span>
+              <p className="text-muted-foreground">Jobs Applied Daily</p>
+            </div>
+
+            {/* Stat 2 */}
+            <div>
+              <span className="text-5xl font-bold text-secondary">200+</span>
+              <p className="text-muted-foreground">Happy Users</p>
+            </div>
+
+            {/* Stat 3 */}
+            <div>
+              <span className="text-5xl font-bold text-accent">4x</span>
+              <p className="text-muted-foreground">Faster Applications</p>
+            </div>
+
+            {/* Stat 4 */}
+            <div>
+              <span className="text-5xl font-bold text-primary">95%</span>
+              <p className="text-muted-foreground">ATS Pass Rate</p>
+            </div>
           </div>
-          
-          <div className="grid md:grid-cols-3 gap-8">
-            <Card className="text-center p-8 shadow-card border-0 bg-gradient-card">
+        </div>
+      </section>
+
+      {/* How It Works Section */}
+      <section className="container mx-auto px-6 py-16">
+        <div className="text-center space-y-8 max-w-3xl mx-auto">
+          <h2 className="text-4xl font-bold">How It Works</h2>
+          <p className="text-xl text-muted-foreground">
+            Automate your job search in 3 simple steps.
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Step 1 */}
+            <Card className="shadow-glow border-0 bg-background/95 backdrop-blur">
               <CardContent className="space-y-4">
-                <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
-                  <Upload className="h-8 w-8 text-primary" />
+                <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 text-primary mx-auto">
+                  <span className="text-2xl font-bold">1</span>
                 </div>
-                <h3 className="text-2xl font-semibold">1. Upload Resume</h3>
-                <p className="text-muted-foreground">
-                  Upload your resume once. Our AI analyzes your skills and experience to understand your profile.
+                <h3 className="text-lg font-semibold text-center">Upload Your Resume</h3>
+                <p className="text-sm text-muted-foreground text-center">
+                  Upload your resume and let our AI analyze it.
                 </p>
               </CardContent>
             </Card>
-            
-            <Card className="text-center p-8 shadow-card border-0 bg-gradient-card">
+
+            {/* Step 2 */}
+            <Card className="shadow-glow border-0 bg-background/95 backdrop-blur">
               <CardContent className="space-y-4">
-                <div className="mx-auto w-16 h-16 bg-secondary/10 rounded-full flex items-center justify-center">
-                  <Settings className="h-8 w-8 text-secondary" />
+                <div className="flex items-center justify-center w-12 h-12 rounded-full bg-secondary/10 text-secondary mx-auto">
+                  <span className="text-2xl font-bold">2</span>
                 </div>
-                <h3 className="text-2xl font-semibold">2. Set Preferences</h3>
-                <p className="text-muted-foreground">
-                  Choose your preferred roles, locations, and companies. Set your job search criteria once.
+                <h3 className="text-lg font-semibold text-center">Set Your Preferences</h3>
+                <p className="text-sm text-muted-foreground text-center">
+                  Define your ideal job roles, locations, and companies.
                 </p>
               </CardContent>
             </Card>
-            
-            <Card className="text-center p-8 shadow-card border-0 bg-gradient-card">
+
+            {/* Step 3 */}
+            <Card className="shadow-glow border-0 bg-background/95 backdrop-blur">
               <CardContent className="space-y-4">
-                <div className="mx-auto w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center">
-                  <Bot className="h-8 w-8 text-accent" />
+                <div className="flex items-center justify-center w-12 h-12 rounded-full bg-accent/10 text-accent mx-auto">
+                  <span className="text-2xl font-bold">3</span>
                 </div>
-                <h3 className="text-2xl font-semibold">3. We Apply for You</h3>
-                <p className="text-muted-foreground">
-                  Our automation finds and applies to relevant jobs every 2 hours. Track everything in your dashboard.
+                <h3 className="text-lg font-semibold text-center">AI Auto-Applies</h3>
+                <p className="text-sm text-muted-foreground text-center">
+                  Our AI applies to jobs for you every 2 hours, 24/7.
                 </p>
               </CardContent>
             </Card>
@@ -205,134 +248,66 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Key Features */}
-      <section className="py-20 bg-muted/30">
-        <div className="container mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">Powerful Features</h2>
-            <p className="text-xl text-muted-foreground">
-              Everything you need to automate your job search effectively
-            </p>
-          </div>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card className="p-6 shadow-card border-0">
-              <CardContent className="space-y-3">
-                <Zap className="h-10 w-10 text-primary" />
-                <h3 className="text-xl font-semibold">Auto Apply Toggle</h3>
-                <p className="text-muted-foreground text-sm">
-                  Turn automation on/off anytime. Full control over your job applications.
-                </p>
+      {/* Pricing Section */}
+      <section className="bg-gradient-to-br from-gray-100 to-gray-200 py-20">
+        <div className="container mx-auto px-6 text-center">
+          <h2 className="text-4xl font-bold mb-12">Pricing</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            {/* Free Plan */}
+            <Card className="shadow-glow border-0 bg-background/95 backdrop-blur">
+              <CardHeader>
+                <CardTitle className="text-2xl font-semibold">Free</CardTitle>
+                <CardDescription className="text-muted-foreground">
+                  Get started with basic automation
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="text-5xl font-bold">$0<span className="text-sm text-muted-foreground">/month</span></div>
+                <ul className="space-y-2 text-sm text-muted-foreground">
+                  <li className="flex items-center space-x-2"><CheckCircle className="h-4 w-4 text-primary" /><span>5 Applications Daily</span></li>
+                  <li className="flex items-center space-x-2"><CheckCircle className="h-4 w-4 text-primary" /><span>Basic Resume Analysis</span></li>
+                  <li className="flex items-center space-x-2"><Clock className="h-4 w-4 text-muted-foreground" /><span>Limited Support</span></li>
+                </ul>
+                <Button className="w-full bg-gradient-primary hover:opacity-90 shadow-soft">Get Started</Button>
               </CardContent>
             </Card>
-            
-            <Card className="p-6 shadow-card border-0">
-              <CardContent className="space-y-3">
-                <Bot className="h-10 w-10 text-secondary" />
-                <h3 className="text-xl font-semibold">Smart Job Matching</h3>
-                <p className="text-muted-foreground text-sm">
-                  AI-powered matching finds jobs that align with your skills and preferences.
-                </p>
-              </CardContent>
-            </Card>
-            
-            <Card className="p-6 shadow-card border-0">
-              <CardContent className="space-y-3">
-                <BarChart3 className="h-10 w-10 text-accent" />
-                <h3 className="text-xl font-semibold">Real-Time Dashboard</h3>
-                <p className="text-muted-foreground text-sm">
-                  Track applications, response rates, and manage your job search analytics.
-                </p>
-              </CardContent>
-            </Card>
-            
-            <Card className="p-6 shadow-card border-0">
-              <CardContent className="space-y-3">
-                <Shield className="h-10 w-10 text-success" />
-                <h3 className="text-xl font-semibold">Private & Secure</h3>
-                <p className="text-muted-foreground text-sm">
-                  Your data is encrypted and secure. We never share your information.
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
 
-      {/* Testimonials */}
-      <section className="py-20">
-        <div className="container mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">What Our Users Say</h2>
-            <p className="text-xl text-muted-foreground">
-              Join thousands of professionals who automated their job search
-            </p>
-          </div>
-          
-          <div className="grid md:grid-cols-3 gap-8">
-            <Card className="p-8 shadow-card border-0">
+            {/* Pro Plan */}
+            <Card className="shadow-glow border-0 bg-background/95 backdrop-blur">
+              <CardHeader>
+                <CardTitle className="text-2xl font-semibold">Pro</CardTitle>
+                <CardDescription className="text-muted-foreground">
+                  Unlock full automation and optimization
+                </CardDescription>
+              </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center space-x-1">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="h-4 w-4 fill-accent text-accent" />
-                  ))}
-                </div>
-                <p className="text-muted-foreground">
-                  "Jobpilot.ai got me 3 interviews in the first week. The automation is incredible and saved me hours of manual applications."
-                </p>
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                    <span className="font-semibold text-primary">RK</span>
-                  </div>
-                  <div>
-                    <p className="font-semibold">Rahul Kumar</p>
-                    <p className="text-sm text-muted-foreground">Product Manager at Flipkart</p>
-                  </div>
-                </div>
+                <div className="text-5xl font-bold">$49<span className="text-sm text-muted-foreground">/month</span></div>
+                <ul className="space-y-2 text-sm text-muted-foreground">
+                  <li className="flex items-center space-x-2"><CheckCircle className="h-4 w-4 text-primary" /><span>Unlimited Applications</span></li>
+                  <li className="flex items-center space-x-2"><CheckCircle className="h-4 w-4 text-primary" /><span>Advanced Resume Analysis</span></li>
+                  <li className="flex items-center space-x-2"><CheckCircle className="h-4 w-4 text-primary" /><span>ATS Optimization</span></li>
+                  <li className="flex items-center space-x-2"><CheckCircle className="h-4 w-4 text-primary" /><span>Priority Support</span></li>
+                </ul>
+                <Button className="w-full bg-gradient-primary hover:opacity-90 shadow-soft">Get Started</Button>
               </CardContent>
             </Card>
-            
-            <Card className="p-8 shadow-card border-0">
+
+            {/* Enterprise Plan */}
+            <Card className="shadow-glow border-0 bg-background/95 backdrop-blur">
+              <CardHeader>
+                <CardTitle className="text-2xl font-semibold">Enterprise</CardTitle>
+                <CardDescription className="text-muted-foreground">
+                  Custom solutions for large teams
+                </CardDescription>
+              </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center space-x-1">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="h-4 w-4 fill-accent text-accent" />
-                  ))}
-                </div>
-                <p className="text-muted-foreground">
-                  "Finally landed my dream job at a startup! The smart matching found opportunities I would have never discovered myself."
-                </p>
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-secondary/10 rounded-full flex items-center justify-center">
-                    <span className="font-semibold text-secondary">PS</span>
-                  </div>
-                  <div>
-                    <p className="font-semibold">Priya Sharma</p>
-                    <p className="text-sm text-muted-foreground">Strategy Consultant</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card className="p-8 shadow-card border-0">
-              <CardContent className="space-y-4">
-                <div className="flex items-center space-x-1">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="h-4 w-4 fill-accent text-accent" />
-                  ))}
-                </div>
-                <p className="text-muted-foreground">
-                  "The dashboard gives me complete visibility into my job search. I can see exactly what's working and optimize accordingly."
-                </p>
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-accent/10 rounded-full flex items-center justify-center">
-                    <span className="font-semibold text-accent">AM</span>
-                  </div>
-                  <div>
-                    <p className="font-semibold">Arjun Mehta</p>
-                    <p className="text-sm text-muted-foreground">Business Analyst</p>
-                  </div>
-                </div>
+                <div className="text-5xl font-bold">Contact Us</div>
+                <ul className="space-y-2 text-sm text-muted-foreground">
+                  <li className="flex items-center space-x-2"><Users className="h-4 w-4 text-primary" /><span>Dedicated Account Manager</span></li>
+                  <li className="flex items-center space-x-2"><TrendingUp className="h-4 w-4 text-primary" /><span>Custom Integrations</span></li>
+                  <li className="flex items-center space-x-2"><Shield className="h-4 w-4 text-primary" /><span>Enhanced Security</span></li>
+                </ul>
+                <Button variant="outline" className="w-full">Contact Us</Button>
               </CardContent>
             </Card>
           </div>
@@ -340,53 +315,26 @@ const Landing = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-foreground text-background py-12">
-        <div className="container mx-auto px-6">
-          <div className="grid md:grid-cols-4 gap-8">
-            <div className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <Bot className="h-6 w-6" />
-                <span className="text-xl font-bold">Jobpilot.ai</span>
-              </div>
-              <p className="text-background/70">
-                Automate your job search with AI-powered applications for Indian professionals.
-              </p>
-            </div>
-            
-            <div>
-              <h3 className="font-semibold mb-4">Product</h3>
-              <div className="space-y-2 text-background/70">
-                <a href="#how-it-works" className="block hover:text-background transition-colors">How it Works</a>
-                <a href="#pricing" className="block hover:text-background transition-colors">Pricing</a>
-                <Link to="/auth" className="block hover:text-background transition-colors">Get Started</Link>
-              </div>
-            </div>
-            
-            <div>
-              <h3 className="font-semibold mb-4">Company</h3>
-              <div className="space-y-2 text-background/70">
-                <a href="#" className="block hover:text-background transition-colors">About</a>
-                <a href="#" className="block hover:text-background transition-colors">Contact</a>
-                <a href="#" className="block hover:text-background transition-colors">Careers</a>
-              </div>
-            </div>
-            
-            <div>
-              <h3 className="font-semibold mb-4">Legal</h3>
-              <div className="space-y-2 text-background/70">
-                <a href="#" className="block hover:text-background transition-colors">Privacy Policy</a>
-                <a href="#" className="block hover:text-background transition-colors">Terms of Service</a>
-                <a href="#" className="block hover:text-background transition-colors">Data Security</a>
-              </div>
-            </div>
+      <footer className="bg-background py-12 border-t border-border">
+        <div className="container mx-auto px-6 text-center">
+          <div className="flex items-center justify-center space-x-2">
+            <Bot className="h-6 w-6 text-primary" />
+            <span className="text-lg font-bold bg-gradient-primary bg-clip-text text-transparent">
+              Jobpilot.ai
+            </span>
           </div>
-          
-          <div className="border-t border-background/20 mt-8 pt-8 text-center text-background/70">
-            <p>&copy; 2024 Jobpilot.ai. All rights reserved.</p>
-          </div>
+          <p className="text-sm text-muted-foreground mt-4">
+            © {new Date().getFullYear()} Jobpilot.ai. All rights reserved.
+          </p>
         </div>
       </footer>
     </div>
+  );
+};
+
+const CardDescription = ({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) => {
+  return (
+    <p className={`text-sm text-muted-foreground ${className}`} {...props} />
   );
 };
 
