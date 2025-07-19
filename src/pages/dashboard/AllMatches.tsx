@@ -27,6 +27,9 @@ interface JobMatch {
   job_url: string;
   description?: string;
   salary_range?: string;
+  ats_score?: number;
+  matched_skills?: string[];
+  missing_skills?: string[];
 }
 
 const AllMatches = () => {

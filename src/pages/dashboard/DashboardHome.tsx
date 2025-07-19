@@ -9,8 +9,10 @@ import {
   Upload, Settings, CheckCircle, XCircle, Clock, Zap, Bell,
   ArrowRight, FileText, Target, TrendingUp, Calendar,
   PlusCircle, BarChart3, MessageSquare, ExternalLink,
-  Filter, Search, MapPin, Briefcase, Star
+  Filter, Search, MapPin, Briefcase, Star, Lightbulb
 } from "lucide-react";
+import { ATSScoreCard } from "@/components/ATSScoreCard";
+import { ResumeOptimizationPanel } from "@/components/ResumeOptimizationPanel";
 import { useState, useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -112,90 +114,92 @@ const DashboardHome = () => {
 
   const keyMetrics = [
     {
-      title: "Applications Today",
-      value: "42",
-      subtitle: "Applied",
-      icon: FileText,
+      title: "New Jobs Today",
+      value: "16",
+      subtitle: "Fresh Matches",
+      icon: Target,
       color: "text-primary",
       bgColor: "bg-primary/10",
-      link: "/dashboard/applied"
-    },
-    {
-      title: "Job Matches Found",
-      value: "16",
-      subtitle: "Matches",
-      icon: Target,
-      color: "text-secondary",
-      bgColor: "bg-secondary/10",
       link: "/dashboard/matches"
     },
     {
-      title: "Interviews Scheduled",
-      value: "3",
-      subtitle: "Interviews",
-      icon: Calendar,
-      color: "text-accent",
-      bgColor: "bg-accent/10",
-      link: "/dashboard/interviews"
-    },
-    {
-      title: "Success Rate",
-      value: "32%",
-      subtitle: "Success",
+      title: "High ATS Score",
+      value: "12",
+      subtitle: "80%+ Match",
       icon: TrendingUp,
       color: "text-success",
       bgColor: "bg-success/10",
-      link: "/dashboard/analytics"
+      link: "/dashboard/matches"
+    },
+    {
+      title: "Profile Score",
+      value: "73%",
+      subtitle: "ATS Ready",
+      icon: FileText,
+      color: "text-secondary",
+      bgColor: "bg-secondary/10",
+      link: "/dashboard/profile-setup"
+    },
+    {
+      title: "Skill Matches",
+      value: "8/10",
+      subtitle: "Top Skills",
+      icon: Star,
+      color: "text-accent",
+      bgColor: "bg-accent/10",
+      link: "/dashboard/profile-setup"
     },
   ];
 
-  const recentApplications = [
+  const recentJobMatches = [
     {
       date: "Jul 17",
       role: "Senior PM",
       company: "Flipkart",
-      status: "applied",
-      location: "Bangalore"
+      atsScore: 87,
+      location: "Bangalore",
+      matchedSkills: ["Product Strategy", "Analytics", "Leadership"],
+      missingSkills: ["Machine Learning"]
     },
     {
-      date: "Jul 16",
+      date: "Jul 16", 
       role: "Product Manager",
       company: "Xeno",
-      status: "shortlisted",
-      location: "Mumbai"
+      atsScore: 92,
+      location: "Mumbai",
+      matchedSkills: ["Product Management", "Data Analysis", "Agile"],
+      missingSkills: []
     },
     {
       date: "Jul 15",
-      role: "Senior Product Manager",
+      role: "Senior Product Manager", 
       company: "Unacademy",
-      status: "rejected",
-      location: "Bangalore"
+      atsScore: 65,
+      location: "Bangalore",
+      matchedSkills: ["Product Strategy", "Team Management"],
+      missingSkills: ["EdTech Experience", "Mobile Apps"]
     },
     {
       date: "Jul 14",
       role: "PM - Growth",
       company: "Razorpay",
-      status: "applied",
-      location: "Bangalore"
+      atsScore: 78,
+      location: "Bangalore",
+      matchedSkills: ["Growth Hacking", "Analytics", "Product Strategy"],
+      missingSkills: ["FinTech Experience"]
     }
   ];
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'applied': return 'text-primary bg-primary/10';
-      case 'shortlisted': return 'text-success bg-success/10';
-      case 'rejected': return 'text-destructive bg-destructive/10';
-      default: return 'text-muted-foreground bg-muted/10';
-    }
+  const getATSScoreColor = (score: number) => {
+    if (score >= 80) return 'text-success bg-success/10';
+    if (score >= 60) return 'text-warning bg-warning/10';
+    return 'text-destructive bg-destructive/10';
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'applied': return <Clock className="h-3 w-3" />;
-      case 'shortlisted': return <CheckCircle className="h-3 w-3" />;
-      case 'rejected': return <XCircle className="h-3 w-3" />;
-      default: return <Clock className="h-3 w-3" />;
-    }
+  const getATSScoreIcon = (score: number) => {
+    if (score >= 80) return <CheckCircle className="h-3 w-3" />;
+    if (score >= 60) return <TrendingUp className="h-3 w-3" />;
+    return <XCircle className="h-3 w-3" />;
   };
 
   return (
@@ -321,19 +325,19 @@ const DashboardHome = () => {
               </CardContent>
             </Card>
 
-            {/* Application History */}
+            {/* Recent Job Matches with ATS Scores */}
             <Card className="shadow-card border-0">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center space-x-2">
-                    <Calendar className="h-5 w-5" />
-                    <span>Recent Applications</span>
+                    <Target className="h-5 w-5" />
+                    <span>Recent Job Matches</span>
                   </CardTitle>
                   <div className="flex items-center space-x-2">
                     <Button variant="ghost" size="sm">
                       <Filter className="h-4 w-4" />
                     </Button>
-                    <Link to="/dashboard/applied">
+                    <Link to="/dashboard/matches">
                       <Button variant="outline" size="sm">
                         View All
                       </Button>
@@ -343,29 +347,31 @@ const DashboardHome = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {recentApplications.map((app, index) => (
+                  {recentJobMatches.map((job, index) => (
                     <div key={index} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors">
                       <div className="flex items-center space-x-3">
                         <div className="text-sm font-medium text-muted-foreground">
-                          {app.date}
+                          {job.date}
                         </div>
                         <div className="flex-1">
-                          <p className="font-medium">{app.role}</p>
+                          <p className="font-medium">{job.role}</p>
                           <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                             <Briefcase className="h-3 w-3" />
-                            <span>{app.company}</span>
+                            <span>{job.company}</span>
                             <span>•</span>
                             <MapPin className="h-3 w-3" />
-                            <span>{app.location}</span>
+                            <span>{job.location}</span>
                           </div>
                         </div>
                       </div>
-                      <Badge variant="outline" className={`${getStatusColor(app.status)} border-0`}>
-                        <div className="flex items-center space-x-1">
-                          {getStatusIcon(app.status)}
-                          <span className="capitalize">{app.status}</span>
-                        </div>
-                      </Badge>
+                      <div className="flex items-center space-x-2">
+                        <Badge variant="outline" className={`${getATSScoreColor(job.atsScore)} border-0`}>
+                          <div className="flex items-center space-x-1">
+                            {getATSScoreIcon(job.atsScore)}
+                            <span>{job.atsScore}% ATS</span>
+                          </div>
+                        </Badge>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -373,19 +379,42 @@ const DashboardHome = () => {
             </Card>
           </div>
 
-          {/* Right Column - Manual Upload & Insights */}
+          {/* Right Column - Resume Optimization & ATS Analysis */}
           <div className="space-y-6">
+            {/* Resume Optimization Panel */}
+            <ResumeOptimizationPanel
+              currentScore={73}
+              potentialScore={89}
+              suggestions={{
+                addSkills: ["Machine Learning", "Data Science", "Python"],
+                addKeywords: ["Product Analytics", "User Research", "A/B Testing"],
+                improveSections: ["Add quantified achievements", "Include relevant certifications", "Optimize job titles"]
+              }}
+              onOptimizeResume={() => {
+                toast({
+                  title: "Resume Optimization",
+                  description: "Redirecting to resume optimizer...",
+                });
+              }}
+              onUpdateProfile={() => {
+                toast({
+                  title: "Profile Update",
+                  description: "Redirecting to profile settings...",
+                });
+              }}
+            />
+
             {/* Manual Job Upload */}
             <Card className="shadow-card border-0">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <PlusCircle className="h-5 w-5" />
-                  <span>Manual Job Upload</span>
+                  <span>Manual Job Analysis</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  Found a job we missed? Paste the link and we'll apply for you.
+                  Found an interesting job? Get instant ATS score analysis.
                 </p>
                 <div className="space-y-3">
                   <Input
@@ -397,40 +426,9 @@ const DashboardHome = () => {
                     onClick={handleManualJobSubmit}
                     className="w-full bg-gradient-primary hover:opacity-90"
                   >
-                    Submit Job <ExternalLink className="ml-2 h-4 w-4" />
+                    Analyze Job <Target className="ml-2 h-4 w-4" />
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Quick Insights */}
-            <Card className="shadow-card border-0">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <BarChart3 className="h-5 w-5" />
-                  <span>Quick Insights</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Top Company</span>
-                    <span className="font-medium">Flipkart</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Best Response Day</span>
-                    <span className="font-medium">Tuesday</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Most Matched Skill</span>
-                    <span className="font-medium">Product Strategy</span>
-                  </div>
-                </div>
-                <Link to="/dashboard/analytics">
-                  <Button variant="outline" className="w-full">
-                    View Full Analytics
-                  </Button>
-                </Link>
               </CardContent>
             </Card>
 
@@ -439,15 +437,15 @@ const DashboardHome = () => {
               <CardContent className="p-6">
                 <div className="flex items-center space-x-3 mb-4">
                   <div className="p-2 bg-primary/10 rounded-lg">
-                    <MessageSquare className="h-5 w-5 text-primary" />
+                    <Lightbulb className="h-5 w-5 text-primary" />
                   </div>
                   <div>
                     <h3 className="font-semibold">JobPilot AI Assistant</h3>
-                    <p className="text-sm text-muted-foreground">Get personalized job advice</p>
+                    <p className="text-sm text-muted-foreground">Get ATS optimization tips</p>
                   </div>
                 </div>
                 <Button className="w-full bg-gradient-primary hover:opacity-90">
-                  Ask JobPilot AI
+                  Get ATS Tips
                 </Button>
               </CardContent>
             </Card>
@@ -460,25 +458,25 @@ const DashboardHome = () => {
             <div className="grid grid-cols-3 md:grid-cols-3 gap-3">
               <Link to="/dashboard/profile-setup">
                 <Button variant="outline" className="w-full">
-                  <Upload className="h-4 w-4 mr-2" />
-                  <span className="hidden md:inline">Update Resume</span>
-                  <span className="md:hidden">Resume</span>
+                  <Target className="mr-2 h-4 w-4" />
+                  Optimize ATS
                 </Button>
               </Link>
+              
               <Link to="/dashboard/matches">
-                <Button variant="outline" className="w-full">
-                  <Target className="h-4 w-4 mr-2" />
-                  <span className="hidden md:inline">Check Matches</span>
-                  <span className="md:hidden">Matches</span>
+                <Button className="w-full bg-gradient-primary hover:opacity-90">
+                  <Search className="mr-2 h-4 w-4" />
+                  Browse Jobs
                 </Button>
               </Link>
+              
               <Button 
+                variant="outline" 
                 onClick={handleConfigureAutoApply}
-                className="w-full bg-gradient-primary hover:opacity-90"
+                className="w-full"
               >
-                <Zap className="h-4 w-4 mr-2" />
-                <span className="hidden md:inline">Apply to All</span>
-                <span className="md:hidden">Auto Apply</span>
+                <Lightbulb className="mr-2 h-4 w-4" />
+                Get Tips
               </Button>
             </div>
           </div>
