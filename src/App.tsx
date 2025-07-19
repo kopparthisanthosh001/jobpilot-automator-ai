@@ -1,58 +1,31 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-
-const Landing = () => (
-  <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-    <div className="text-center text-white">
-      <h1 className="text-4xl font-bold mb-4">Jobpilot.ai</h1>
-      <p className="text-xl mb-8">AI-Powered Job Search Automation</p>
-      <a href="/auth" className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700">
-        Get Started
-      </a>
-    </div>
-  </div>
-);
-
-const Auth = () => (
-  <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-    <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
-      <h2 className="text-2xl font-bold text-center mb-6">Sign In</h2>
-      <form className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Email</label>
-          <input 
-            type="email" 
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
-            placeholder="Enter your email"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Password</label>
-          <input 
-            type="password" 
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
-            placeholder="Enter your password"
-          />
-        </div>
-        <button 
-          type="submit"
-          className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700"
-        >
-          Sign In
-        </button>
-      </form>
-    </div>
-  </div>
-);
-
-const App = () => {
+function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/auth" element={<Auth />} />
-      </Routes>
-    </BrowserRouter>
+    <div style={{
+      minHeight: '100vh',
+      backgroundColor: '#1e293b',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: 'white',
+      fontFamily: 'system-ui'
+    }}>
+      <div style={{ textAlign: 'center' }}>
+        <h1 style={{ fontSize: '3rem', marginBottom: '1rem' }}>Jobpilot.ai</h1>
+        <p style={{ fontSize: '1.5rem', marginBottom: '2rem' }}>AI-Powered Job Search</p>
+        <button style={{
+          backgroundColor: '#3b82f6',
+          color: 'white',
+          padding: '12px 24px',
+          border: 'none',
+          borderRadius: '8px',
+          fontSize: '1rem',
+          cursor: 'pointer'
+        }}>
+          Get Started
+        </button>
+      </div>
+    </div>
   );
-};
+}
 
 export default App;
