@@ -274,57 +274,36 @@ const DashboardHome = () => {
 
         {/* Main Content Grid */}
         <div className="grid lg:grid-cols-3 gap-6">
-          {/* Left Column - Resume & Auto Apply */}
+          {/* Left Column - Resume Optimization & Job Matches */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Resume Status */}
-            <Card className="shadow-card border-0">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Upload className="h-5 w-5" />
-                  <span>Resume & Preferences</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    {resumeUploaded ? (
-                      <CheckCircle className="h-5 w-5 text-success" />
-                    ) : (
-                      <XCircle className="h-5 w-5 text-destructive" />
-                    )}
-                    <div>
-                      <p className="font-medium">
-                        {resumeUploaded ? "Resume uploaded" : "No resume uploaded"}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {resumeUploaded ? "Last updated 2 days ago" : "Upload your resume to get started"}
-                      </p>
-                    </div>
-                  </div>
-                  <Link to="/dashboard/profile-setup">
-                    <Button variant="outline" size="sm">
-                      {resumeUploaded ? "Update" : "Upload"}
-                    </Button>
-                  </Link>
-                </div>
-
-                <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg mt-4">
-                  <div className="flex items-center space-x-3">
-                    <Zap className="h-5 w-5 text-primary" />
-                    <div>
-                      <p className="font-medium">Auto Apply</p>
-                      <p className="text-sm text-muted-foreground">
-                        {autoApplyEnabled ? "Active - Checking every 2 hours" : "Inactive"}
-                      </p>
-                    </div>
-                  </div>
-                  <Switch
-                    checked={autoApplyEnabled}
-                    onCheckedChange={setAutoApplyEnabled}
-                  />
-                </div>
-              </CardContent>
-            </Card>
+            {/* HIGHLIGHTED Resume Optimization Panel */}
+            <div className="relative">
+              {/* Glow Effect */}
+              <div className="absolute -inset-1 bg-gradient-to-r from-primary/50 to-secondary/50 rounded-lg blur opacity-75"></div>
+              <div className="relative">
+                <ResumeOptimizationPanel
+                  currentScore={73}
+                  potentialScore={89}
+                  suggestions={{
+                    addSkills: ["Machine Learning", "Data Science", "Python"],
+                    addKeywords: ["Product Analytics", "User Research", "A/B Testing"],
+                    improveSections: ["Add quantified achievements", "Include relevant certifications", "Optimize job titles"]
+                  }}
+                  onOptimizeResume={() => {
+                    toast({
+                      title: "Resume Optimization",
+                      description: "Redirecting to resume optimizer...",
+                    });
+                  }}
+                  onUpdateProfile={() => {
+                    toast({
+                      title: "Profile Update",
+                      description: "Redirecting to profile settings...",
+                    });
+                  }}
+                />
+              </div>
+            </div>
 
             {/* Recent Job Matches with ATS Scores */}
             <Card className="shadow-card border-0">
@@ -380,36 +359,8 @@ const DashboardHome = () => {
             </Card>
           </div>
 
-          {/* Right Column - HIGHLIGHTED Resume Optimization & Other Features */}
+          {/* Right Column - Other Features */}
           <div className="space-y-6">
-            {/* HIGHLIGHTED Resume Optimization Panel */}
-            <div className="relative">
-              {/* Glow Effect */}
-              <div className="absolute -inset-1 bg-gradient-to-r from-primary/50 to-secondary/50 rounded-lg blur opacity-75"></div>
-              <div className="relative">
-                <ResumeOptimizationPanel
-                  currentScore={73}
-                  potentialScore={89}
-                  suggestions={{
-                    addSkills: ["Machine Learning", "Data Science", "Python"],
-                    addKeywords: ["Product Analytics", "User Research", "A/B Testing"],
-                    improveSections: ["Add quantified achievements", "Include relevant certifications", "Optimize job titles"]
-                  }}
-                  onOptimizeResume={() => {
-                    toast({
-                      title: "Resume Optimization",
-                      description: "Redirecting to resume optimizer...",
-                    });
-                  }}
-                  onUpdateProfile={() => {
-                    toast({
-                      title: "Profile Update",
-                      description: "Redirecting to profile settings...",
-                    });
-                  }}
-                />
-              </div>
-            </div>
 
             {/* Manual Job Upload */}
             <Card className="shadow-card border-0">
