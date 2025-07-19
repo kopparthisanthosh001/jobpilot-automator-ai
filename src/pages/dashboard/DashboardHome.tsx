@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Upload, Settings, CheckCircle, XCircle, Clock, Zap, Bell,
   ArrowRight, FileText, Target, TrendingUp, Calendar,
@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const DashboardHome = () => {
   const user = useUser();
+  const navigate = useNavigate();
   const [autoApplyEnabled, setAutoApplyEnabled] = useState(false);
   const [resumeUploaded] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
@@ -290,16 +291,10 @@ const DashboardHome = () => {
                     improveSections: ["Add quantified achievements", "Include relevant certifications", "Optimize job titles"]
                   }}
                   onOptimizeResume={() => {
-                    toast({
-                      title: "Resume Optimization",
-                      description: "Redirecting to resume optimizer...",
-                    });
+                    navigate('/dashboard/ats-optimizer');
                   }}
                   onUpdateProfile={() => {
-                    toast({
-                      title: "Profile Update",
-                      description: "Redirecting to profile settings...",
-                    });
+                    navigate('/dashboard/profile-setup');
                   }}
                 />
               </div>
