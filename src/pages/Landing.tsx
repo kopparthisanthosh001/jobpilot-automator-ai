@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Bot, Zap, Target, Shield, ArrowRight, CheckCircle, Users, TrendingUp, Clock } from "lucide-react";
 import { useAuthSession } from "@/hooks/useAuthSession";
@@ -332,5 +332,10 @@ const Landing = () => {
   );
 };
 
-export default Landing;
+const CardDescription = ({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) => {
+  return (
+    <p className={`text-sm text-muted-foreground ${className}`} {...props} />
+  );
+};
 
+export default Landing;
