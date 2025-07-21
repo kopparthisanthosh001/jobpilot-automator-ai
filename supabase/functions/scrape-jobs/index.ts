@@ -299,66 +299,117 @@ async function scrapeLinkedInNaukriJobs(role: string, location: string, limit: n
     'X-RapidAPI-Host': 'jsearch.p.rapidapi.com'
   }
 
-  // Search for jobs posted TODAY only
+  // Search for jobs posted TODAY only - strict date filtering
   const endpoints = [
     `https://jsearch.p.rapidapi.com/search?query=${encodeURIComponent(role)}&country=IN&locality=${encodeURIComponent(location)}&employment_types=FULLTIME&date_posted=today`,
     `https://jsearch.p.rapidapi.com/search?query=${encodeURIComponent(role + ' site:naukri.com')}&country=IN&locality=${encodeURIComponent(location)}&employment_types=FULLTIME&date_posted=today`
   ]
 
+  let totalProcessedJobs = 0
+  const today = new Date().toDateString()
+
   for (const url of endpoints) {
-    try {
-      const res = await fetch(url, { method: 'GET', headers })
-      if (!res.ok) {
-        console.error(`Failed to fetch from ${url}: ${res.status}`)
-        continue
+    let retryCount = 0
+    const maxRetries = 3
+    
+    while (retryCount < maxRetries) {
+      try {
+        // Progressive delay for retries
+        if (retryCount > 0) {
+          await delay(2000 + (retryCount * 1000))
+        }
+        
+        const res = await fetch(url, { method: 'GET', headers })
+        
+        // Handle rate limiting specifically
+        if (res.status === 429) {
+          console.error(`Rate limited on ${url}, retry ${retryCount + 1}/${maxRetries}`)
+          retryCount++
+          await delay(5000) // Wait 5 seconds for rate limit
+          continue
+        }
+        
+        // Handle forbidden access
+        if (res.status === 403) {
+          console.error(`Access forbidden on ${url}, skipping endpoint`)
+          break // Skip this endpoint entirely
+        }
+        
+        if (!res.ok) {
+          console.error(`Failed to fetch from ${url}: ${res.status}`)
+          retryCount++
+          continue
+        }
+        
+        const json = await res.json()
+        const jobData = json.data || []
+        
+        let todayJobsCount = 0
+        
+        for (const job of jobData.slice(0, Math.ceil(limit / 2))) {
+          const desc = job.job_description || job.job_highlights?.Qualifications?.join('. ') || 'No description available'
+          
+          // Strict date filtering - ONLY jobs posted today
+          const jobPostedDate = job.job_posted_at_datetime_utc ? new Date(job.job_posted_at_datetime_utc).toDateString() : today
+          if (jobPostedDate !== today) {
+            continue // Skip jobs not posted today
+          }
+          
+          // Strict location filtering - only exact city matches
+          const jobLocation = `${job.job_city || ''} ${job.job_state || ''}`.toLowerCase()
+          if (!jobLocation.includes(location.toLowerCase())) {
+            continue
+          }
+          
+          // Strict role filtering - job title must contain the role
+          const jobTitle = job.job_title?.toLowerCase() || ''
+          const roleWords = role.toLowerCase().split(' ')
+          const hasRoleMatch = roleWords.some(word => jobTitle.includes(word)) || 
+                             jobTitle.includes(role.toLowerCase())
+          
+          if (!hasRoleMatch) {
+            continue
+          }
+          
+          // Filter by experience level if specified
+          if (experience && !desc.toLowerCase().includes(experience.toLowerCase())) {
+            continue
+          }
+          
+          jobs.push({
+            title: job.job_title || 'Unknown Title',
+            company: job.employer_name || 'Unknown Company',
+            location: `${job.job_city || location}, ${job.job_state || 'India'}`,
+            description: desc,
+            salary_range: job.job_salary || (job.job_min_salary ? `₹${job.job_min_salary} - ₹${job.job_max_salary}` : undefined),
+            job_url: job.job_apply_link || job.job_google_link || '#',
+            platform: url.includes('naukri') ? 'naukri' : 'linkedin',
+            requirements: job.job_highlights?.Qualifications || [],
+            benefits: job.job_highlights?.Benefits || [],
+            scraped_at: new Date().toISOString()
+          })
+          
+          todayJobsCount++
+          totalProcessedJobs++
+        }
+        
+        console.log(`Found ${jobData.length} jobs for ${role} in ${location}, ${todayJobsCount} posted today`)
+        
+        // Break out of retry loop on success
+        break
+        
+      } catch (error) {
+        console.error(`Error fetching from ${url} (attempt ${retryCount + 1}):`, error)
+        retryCount++
+        
+        if (retryCount >= maxRetries) {
+          console.error(`Max retries reached for ${url}`)
+        }
       }
-      
-      const json = await res.json()
-      const jobData = json.data || []
-      
-      for (const job of jobData.slice(0, Math.ceil(limit / 2))) {
-        const desc = job.job_description || job.job_highlights?.Qualifications?.join('. ') || 'No description available'
-        
-        // Strict location filtering - only exact city matches
-        const jobLocation = `${job.job_city || ''} ${job.job_state || ''}`.toLowerCase()
-        if (!jobLocation.includes(location.toLowerCase())) {
-          continue
-        }
-        
-        // Strict role filtering - job title must contain the role
-        const jobTitle = job.job_title?.toLowerCase() || ''
-        const roleWords = role.toLowerCase().split(' ')
-        const hasRoleMatch = roleWords.some(word => jobTitle.includes(word)) || 
-                           jobTitle.includes(role.toLowerCase())
-        
-        if (!hasRoleMatch) {
-          continue
-        }
-        
-        // Filter by experience level if specified
-        if (experience && !desc.toLowerCase().includes(experience.toLowerCase())) {
-          continue
-        }
-        
-        jobs.push({
-          title: job.job_title || 'Unknown Title',
-          company: job.employer_name || 'Unknown Company',
-          location: `${job.job_city || location}, ${job.job_state || 'India'}`,
-          description: desc,
-          salary_range: job.job_salary || (job.job_min_salary ? `₹${job.job_min_salary} - ₹${job.job_max_salary}` : undefined),
-          job_url: job.job_apply_link || job.job_google_link || '#',
-          platform: url.includes('naukri') ? 'naukri' : 'linkedin',
-          requirements: job.job_highlights?.Qualifications || [],
-          benefits: job.job_highlights?.Benefits || [],
-          scraped_at: new Date().toISOString()
-        })
-      }
-      
-      // Add delay between API calls
-      await delay(1000)
-    } catch (error) {
-      console.error(`Error fetching from ${url}:`, error)
     }
+    
+    // Add delay between different endpoints
+    await delay(1000)
   }
 
   console.log(`Scraped ${jobs.length} jobs for ${role} in ${location}`)
