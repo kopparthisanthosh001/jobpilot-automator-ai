@@ -7,7 +7,6 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import ErrorBoundary from "./components/ErrorBoundary";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
@@ -28,58 +27,46 @@ const AuthWrapper = () => {
   const location = useLocation();
 
   useEffect(() => {
-    console.log("AuthWrapper - Current user:", user);
-    console.log("AuthWrapper - Current path:", location.pathname);
-    
-    // Only redirect authenticated users from landing page to dashboard
-    // Don't redirect from auth page to allow explicit login/signup
+    // Only redirect to dashboard if user is authenticated and on landing page
+    // Allow access to auth page even if user is authenticated (for new signups)
     if (user && location.pathname === '/') {
-      console.log("Redirecting authenticated user from landing to dashboard");
       navigate('/dashboard', { replace: true });
     }
   }, [user, location.pathname, navigate]);
 
   return (
-    <ErrorBoundary>
-      <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/auth" element={<Auth />} />
-        <Route path="/dashboard" element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        }>
-          <Route index element={<DashboardHome />} />
-          <Route path="profile-setup" element={<ProfileSetup />} />
-          <Route path="applied" element={<AppliedJobs />} />
-          <Route path="matches" element={<AllMatches />} />
-          <Route path="scrape" element={<TriggerScraping />} />
-          <Route path="ats-optimizer" element={<ATSOptimizer />} />
-          <Route path="resume-analysis" element={<ATSOptimizer />} />
-          <Route path="analytics" element={<ATSOptimizer />} />
-        </Route>
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </ErrorBoundary>
+    <Routes>
+      <Route path="/" element={<Landing />} />
+      <Route path="/auth" element={<Auth />} />
+      <Route path="/dashboard" element={
+        <ProtectedRoute>
+          <Dashboard />
+        </ProtectedRoute>
+      }>
+        <Route index element={<DashboardHome />} />
+        <Route path="profile-setup" element={<ProfileSetup />} />
+        <Route path="applied" element={<AppliedJobs />} />
+        <Route path="matches" element={<AllMatches />} />
+        <Route path="scrape" element={<TriggerScraping />} />
+        <Route path="ats-optimizer" element={<ATSOptimizer />} />
+        <Route path="resume-analysis" element={<ATSOptimizer />} />
+        <Route path="analytics" element={<ATSOptimizer />} />
+      </Route>
+      <Route path="*" element={<NotFound />} />
+    </Routes>
   );
 };
 
-const App = () => {
-  console.log("App component rendering");
-  
-  return (
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <AuthWrapper />
-          </BrowserRouter>
-        </TooltipProvider>
-      </QueryClientProvider>
-    </ErrorBoundary>
-  );
-};
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <AuthWrapper />
+      </BrowserRouter>
+    </TooltipProvider>
+  </QueryClientProvider>
+);
 
 export default App;
