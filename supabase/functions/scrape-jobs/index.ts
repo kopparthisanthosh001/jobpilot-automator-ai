@@ -17,6 +17,7 @@ interface JobData {
   platform: string;
   requirements?: string[];
   benefits?: string[];
+  scraped_at?: string;
 }
 
 const INDIAN_CITIES = ['Bangalore', 'Hyderabad', 'Mumbai', 'Delhi', 'Chennai', 'Pune']
@@ -57,20 +58,40 @@ serve(async (req) => {
     for (const user of targetUsers) {
       if (!user.desired_role) continue
       
-      let roles = [user.desired_role]
+      // Get synonyms for the desired role
       const synonyms = ROLE_SYNONYMS[user.desired_role.toLowerCase()] || []
-      roles = roles.concat(synonyms)
+      let roles = [user.desired_role, ...synonyms]
+      
+      // Use ONLY user's preferred locations - no default cities
+      const locations = user.preferred_locations || []
+      
+      if (locations.length === 0) {
+        console.log(`No preferred locations for user ${user.email}, skipping job scraping`)
+        continue
+      }
 
-      const locations = user.preferred_locations?.slice(0, 3) || INDIAN_CITIES
-
-      console.log(`Searching for ${user.email}: roles=${roles}, locations=${locations}`)
+      console.log(`Searching for ${user.email}: roles=${roles.join(',')}, locations=${locations.join(',')}`)
 
       for (const role of roles) {
         for (const city of locations) {
           try {
             const jobs = await scrapeLinkedInNaukriJobs(role, city, fetch_recent ? 5 : 10, user.experience_level)
-            allJobs.push(...jobs)
-            console.log(`Found ${jobs.length} jobs for ${role} in ${city}`)
+            
+            // Filter jobs to only include those from today and exact location match
+            const todayJobs = jobs.filter(job => {
+              // Check if job is from today
+              const jobDate = new Date(job.scraped_at || new Date())
+              const today = new Date()
+              const isToday = jobDate.toDateString() === today.toDateString()
+              
+              // Check if job location exactly matches user's preferred city
+              const isFromUserLocation = job.location.toLowerCase().includes(city.toLowerCase())
+              
+              return isToday && isFromUserLocation
+            })
+            
+            allJobs.push(...todayJobs)
+            console.log(`Found ${jobs.length} jobs for ${role} in ${city}, ${todayJobs.length} posted today`)
             
             // Add delay to avoid rate limiting
             await delay(1000 + Math.random() * 300)
@@ -278,9 +299,10 @@ async function scrapeLinkedInNaukriJobs(role: string, location: string, limit: n
     'X-RapidAPI-Host': 'jsearch.p.rapidapi.com'
   }
 
+  // Search for jobs posted TODAY only
   const endpoints = [
-    `https://jsearch.p.rapidapi.com/search?query=${encodeURIComponent(role)}&country=IN&locality=${encodeURIComponent(location)}&employment_types=FULLTIME&date_posted=week&employer=linkedin`,
-    `https://jsearch.p.rapidapi.com/search?query=${encodeURIComponent(role + ' site:naukri.com')}&country=IN&locality=${encodeURIComponent(location)}&employment_types=FULLTIME&date_posted=week`
+    `https://jsearch.p.rapidapi.com/search?query=${encodeURIComponent(role)}&country=IN&locality=${encodeURIComponent(location)}&employment_types=FULLTIME&date_posted=today`,
+    `https://jsearch.p.rapidapi.com/search?query=${encodeURIComponent(role + ' site:naukri.com')}&country=IN&locality=${encodeURIComponent(location)}&employment_types=FULLTIME&date_posted=today`
   ]
 
   for (const url of endpoints) {
@@ -297,6 +319,22 @@ async function scrapeLinkedInNaukriJobs(role: string, location: string, limit: n
       for (const job of jobData.slice(0, Math.ceil(limit / 2))) {
         const desc = job.job_description || job.job_highlights?.Qualifications?.join('. ') || 'No description available'
         
+        // Strict location filtering - only exact city matches
+        const jobLocation = `${job.job_city || ''} ${job.job_state || ''}`.toLowerCase()
+        if (!jobLocation.includes(location.toLowerCase())) {
+          continue
+        }
+        
+        // Strict role filtering - job title must contain the role
+        const jobTitle = job.job_title?.toLowerCase() || ''
+        const roleWords = role.toLowerCase().split(' ')
+        const hasRoleMatch = roleWords.some(word => jobTitle.includes(word)) || 
+                           jobTitle.includes(role.toLowerCase())
+        
+        if (!hasRoleMatch) {
+          continue
+        }
+        
         // Filter by experience level if specified
         if (experience && !desc.toLowerCase().includes(experience.toLowerCase())) {
           continue
@@ -311,7 +349,8 @@ async function scrapeLinkedInNaukriJobs(role: string, location: string, limit: n
           job_url: job.job_apply_link || job.job_google_link || '#',
           platform: url.includes('naukri') ? 'naukri' : 'linkedin',
           requirements: job.job_highlights?.Qualifications || [],
-          benefits: job.job_highlights?.Benefits || []
+          benefits: job.job_highlights?.Benefits || [],
+          scraped_at: new Date().toISOString()
         })
       }
       
